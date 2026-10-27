@@ -1,0 +1,19 @@
+:root {
+  --accent: #a855f7;
+  --accent-2: #7c3aed;
+  --accent-soft: #d8b4fe;
+
+  --bg: #07040f;
+  --bg-2: #0d0818;
+  --card: #120b22;
+  --card-2: #190f2e;
+  --line: color-mix(in srgb, var(--accent) 28%, transparent);
+  --line-strong: color-mix(in srgb, var(--accent) 60%, transparent);
+  --text: #f3eefc;
+  --muted: #a99fc4;
+  --ok: #22e66b;
+
+  --radius: 18px;
+  --font: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --pixel: "Press Start 2P", "Courier New", monospace;
+}
