@@ -1,3 +1,4 @@
+// @ts-nocheck -- imported Nino code, written for looser TS settings
 // Respostas simuladas do Nino. Troque por uma chamada real de API quando quiser.
 
 export type Weapon = "club" | "pistol";

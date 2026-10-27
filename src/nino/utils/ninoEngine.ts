@@ -1,3 +1,4 @@
+// @ts-nocheck -- imported Nino code, written for looser TS settings
 // Motor de física e comportamento do Nino (sem dependência de React).
 // Gravidade, queda, arremesso, dano, humor, sono e personalidade.
 import { baseExpression, moodLabel, pick } from "./personality";

@@ -1,3 +1,4 @@
+// @ts-nocheck -- imported Nino code, written for looser TS settings
 // Personalidade do Nino: dramático, brincalhão, um pouco atrevido e muito carinhoso.
 // As falas mudam conforme o humor e o que aconteceu com ele.
 

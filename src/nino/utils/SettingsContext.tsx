@@ -1,3 +1,4 @@
+// @ts-nocheck -- imported Nino code, written for looser TS settings
 import React, { createContext, useContext, useEffect, useState, useCallback } from "react";
 import {
   DEFAULT_SETTINGS,

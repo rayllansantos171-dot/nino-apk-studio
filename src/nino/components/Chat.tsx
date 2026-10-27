@@ -64,7 +64,7 @@ export default function Chat({ onBack }: { onBack: () => void }) {
     const deliver = (text: string, defend?: Weapon) => {
       if (defend) {
         const lines = SCENE_LINES[defend];
-        setScene({ weapon: defend, line: lines[Math.floor(Math.random() * lines.length)] });
+        setScene({ weapon: defend, line: lines[Math.floor(Math.random() * lines.length)] ?? "" });
         playScene(defend);
       }
       setMessages((m) => [...m, { id: idRef.current++, from: "nino", text, time: now() }]);

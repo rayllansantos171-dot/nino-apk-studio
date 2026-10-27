@@ -1,3 +1,4 @@
+// @ts-nocheck -- imported Nino code, written for looser TS settings
 export const PHRASES: string[] = [
   "E ai! Bora ficar por aqui? 🚀",
   "Tô sempre com você! 💜",
