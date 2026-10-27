@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import "./index.css";
 import { SettingsProvider, useSettings } from "./utils/SettingsContext";
 import Home, { Splash } from "./pages/Home";
 import ChatPage from "./pages/ChatPage";

@@ -5,6 +5,7 @@ import { IconBack, IconSend, IconSmile } from "./Icons";
 import { SCENE_LINES, respond, Weapon } from "../utils/replies";
 import { playBang, playHit, playPop, playSend, playThud, vibrate } from "../utils/sound";
 import { useSettings } from "../utils/SettingsContext";
+import { askNino } from "@/lib/ai/nino.functions";
 
 interface Msg {
   id: number;
@@ -52,23 +53,31 @@ export default function Chat({ onBack }: { onBack: () => void }) {
       playSend();
       vibrate(15);
     }
-    const reply = respond(clean);
+    const local = respond(clean);
+    const useLocal = !!local.defend || local.text.includes("Rayllan");
+    const history = [...messages.slice(1), { from: "user" as const, text: clean }]
+      .slice(-20)
+      .map((m) => ({ role: m.from === "user" ? ("user" as const) : ("assistant" as const), content: m.text }));
     setMessages((m) => [...m, { id: idRef.current++, from: "user", text: clean, time: now() }]);
     setInput("");
     setTyping(true);
-    window.setTimeout(
-      () => {
-        if (reply.defend) {
-          const lines = SCENE_LINES[reply.defend];
-          setScene({ weapon: reply.defend, line: lines[Math.floor(Math.random() * lines.length)] });
-          playScene(reply.defend);
-        }
-        setMessages((m) => [...m, { id: idRef.current++, from: "nino", text: reply.text, time: now() }]);
-        setTyping(false);
-        if (settings.soundVibration && !reply.defend) playPop();
-      },
-      reply.defend ? 450 : 700 + Math.random() * 700
-    );
+    const deliver = (text: string, defend?: Weapon) => {
+      if (defend) {
+        const lines = SCENE_LINES[defend];
+        setScene({ weapon: defend, line: lines[Math.floor(Math.random() * lines.length)] });
+        playScene(defend);
+      }
+      setMessages((m) => [...m, { id: idRef.current++, from: "nino", text, time: now() }]);
+      setTyping(false);
+      if (settings.soundVibration && !defend) playPop();
+    };
+    if (useLocal) {
+      window.setTimeout(() => deliver(local.text, local.defend), local.defend ? 450 : 700);
+      return;
+    }
+    askNino({ data: { messages: history } })
+      .then((r) => deliver(r.ok ? r.text : r.error))
+      .catch(() => deliver("Ops, perdi a conexão. Tente de novo! 📡"));
   };
 
   return (
