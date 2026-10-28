@@ -7,6 +7,7 @@ import SettingsPage from "./pages/SettingsPage";
 import SkinShopPage from "./pages/SkinShopPage";
 import FloatingAgent from "./components/FloatingAgent";
 import { onVoiceCommand } from "./utils/nativeListen";
+import { matchCommands } from "./utils/voiceCommands";
 import { IconAgent, IconPalette, IconSettings } from "./components/Icons";
 
 type View = "splash" | "agente" | "aparencia" | "ajustes" | "chat" | "loja";
@@ -14,7 +15,7 @@ type View = "splash" | "agente" | "aparencia" | "ajustes" | "chat" | "loja";
 const STARTED_KEY = "nino-ai-started";
 
 function Shell() {
-  const { settings } = useSettings();
+  const { settings, update } = useSettings();
   const [view, setView] = useState<View>(() => {
     try {
       return localStorage.getItem(STARTED_KEY) ? "agente" : "splash";
@@ -24,14 +25,31 @@ function Shell() {
   });
   const [lastTab, setLastTab] = useState<Exclude<View, "splash" | "chat" | "loja">>("agente");
 
-  // Frase dita ao Nino em segundo plano ("Nino, que horas são?") chega aqui e abre o chat.
+  // Frase dita ao Nino em segundo plano ("Nino, pula!" / "Nino, que horas são?") chega aqui.
   const [voiceText, setVoiceText] = useState<string | null>(null);
+  const viewRef = useRef<View>(view);
+  viewRef.current = view;
+  const settingsRef = useRef(settings);
+  settingsRef.current = settings;
   useEffect(
     () =>
       onVoiceCommand((text) => {
-        setVoiceText(text);
-        setView("chat");
+        // No chat, a frase vira mensagem. Nas outras telas o Nino obedece/responde pelo balão.
+        if (viewRef.current === "chat") {
+          setVoiceText(text);
+          return;
+        }
+        const cmds = matchCommands(text);
+        const fire = () => window.dispatchEvent(new CustomEvent("nino-voice", { detail: { text, cmds } }));
+        const s = settingsRef.current;
+        if (s.floating && s.onScreen && viewRef.current !== "splash") {
+          fire();
+        } else {
+          update({ floating: true, onScreen: true });
+          window.setTimeout(fire, 700);
+        }
       }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [],
   );
 

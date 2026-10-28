@@ -215,3 +215,35 @@
 @keyframes lovePulse { 0%,100% { transform: scale(1); } 50% { transform: scale(1.15); } }
 .nino-eyes-dizzy { animation: spinEyes 1s linear infinite; transform-box: fill-box; transform-origin: 50% 50%; }
 @keyframes spinEyes { to { transform: rotate(360deg); } }
+
+/* girar (vira de frente para trás várias vezes) */
+.nino-spin .nino-all { animation: spinTurn .6s linear infinite; }
+@keyframes spinTurn { 0% { transform: scaleX(1); } 50% { transform: scaleX(-1); } 100% { transform: scaleX(1); } }
+
+/* cambalhota */
+.nino-flip .nino-all { animation: backflip .95s ease-in-out 1; transform-origin: 50% 55%; }
+.nino-flip .nino-arm-l { transform: rotate(-60deg); }
+.nino-flip .nino-arm-r { transform: rotate(60deg); }
+@keyframes backflip { 0% { transform: rotate(0); } 100% { transform: rotate(-360deg); } }
+
+/* palmas */
+.nino-clap .nino-all { animation: laugh .5s ease-in-out infinite; }
+.nino-clap .nino-arm-l { animation: clapL .3s ease-in-out infinite; }
+.nino-clap .nino-arm-r { animation: clapR .3s ease-in-out infinite; }
+@keyframes clapL { 0%,100% { transform: rotate(-125deg); } 50% { transform: rotate(-95deg); } }
+@keyframes clapR { 0%,100% { transform: rotate(125deg); } 50% { transform: rotate(95deg); } }
+
+/* mostrar os músculos */
+.nino-flex .nino-all { animation: flexPulse .7s ease-in-out infinite; }
+.nino-flex .nino-arm-l { transform: rotate(-100deg); }
+.nino-flex .nino-arm-r { transform: rotate(100deg); }
+@keyframes flexPulse { 0%,100% { transform: scale(1); } 50% { transform: scale(1.06, 1.03); } }
+
+/* reverência */
+.nino-bow .nino-all { animation: bow 1.8s ease-in-out 1; transform-origin: 50% 100%; }
+@keyframes bow { 0%,100% { transform: rotate(0); } 30%,70% { transform: rotate(16deg) translateY(4px); } }
+
+/* pensando */
+.nino-think .nino-head { animation: thinkTilt 1.6s ease-in-out infinite; }
+.nino-think .nino-arm-r { transform: rotate(155deg); }
+@keyframes thinkTilt { 0%,100% { transform: rotate(-5deg); } 50% { transform: rotate(5deg); } }

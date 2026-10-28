@@ -274,6 +274,9 @@ export default function Nino({
       {action === "panic" && <span className="note n3">!</span>}
       {(action === "dazed" || action === "ko") && <span className="dizzy-stars">★ ★ ★</span>}
       {action === "sleep" && <span className="note n4">z</span>}
+      {action === "think" && <span className="note n3">?</span>}
+      {action === "clap" && <span className="note n1">✦</span>}
+      {action === "flex" && <span className="note n2">✦</span>}
     </div>
   );
 }

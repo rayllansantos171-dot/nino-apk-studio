@@ -5,6 +5,26 @@
 export type Mood = "furioso" | "chateado" | "normal" | "feliz" | "apaixonado";
 
 export const LINES: Record<string, string[]> = {
+  cmdJump: ["Pulando! 🦘", "Lá vou eu!", "Boing! Boing!", "Alto e bom som!"],
+  cmdFlip: ["Cambalhota! Olha só! 🤸", "Salto mortal! 😎", "Aguenta que lá vou eu!"],
+  cmdDance: ["Hora do show! 🎶", "Olha esse passo! 💃", "Bora dançar!", "Segura a onda!"],
+  cmdWave: ["Oi, oi! 👋", "E aí! 😄", "Tchauzinho! 👋", "Olá, humano!"],
+  cmdSit: ["Sentadinho aqui.", "Boa, descansando um pouco.", "Ahh, que alívio..."],
+  cmdSleep: ["Zzz... boa noite! 💤", "Vou tirar um cochilo...", "Sonhos de diamante... zzz"],
+  cmdSpin: ["Giiiira! 🌀", "Tô tonto de feliz!", "Olha eu rodando!"],
+  cmdClap: ["Palmas pra mim! 👏", "Clap clap clap!", "Aplausos! 👏"],
+  cmdFlex: ["Olha esse músculo! 💪", "Forte que nem bloco de ferro!", "Sou parrudo, viu?"],
+  cmdBow: ["Muito obrigado! 🙇", "Reverência de gala!", "Às suas ordens!"],
+  cmdLaugh: ["Hahaha! 😆", "Kkkk, boa!", "Não aguento! 😂"],
+  cmdCry: ["Buá... tá bom, vou chorar 😢", "Snif snif...", "Que tristeza... brincadeira! 😅"],
+  cmdAngry: ["Grrr! Tô bravo! 😠", "Hmpf!", "Cuidado, Nino bravo!"],
+  cmdLove: ["Awn, te amo! 💜", "Que fofo! 💜", "Meu coração quadradinho! 💜"],
+  cmdWalk: ["Dando uma voltinha!", "Tô indo!", "Passeando por aqui..."],
+  cmdRun: ["Correndo! 🏃", "Zuuum!", "Nem me alcança!"],
+  cmdStop: ["Parei! 🛑", "Tá bom, quietinho.", "Congelei!"],
+  cmdThink: ["Hmm... deixa eu pensar 🤔", "Pensando...", "Interessante..."],
+  cmdListen: ["Hmm... 🤔", "Deixa eu ver...", "Pensando aqui..."],
+  cmdHeard: ["Entendi! 👍", "Pode deixar!", "Beleza!"],
   greet: [
     "Opa! Cheguei! 💜",
     "E ai! Bora brincar? 🚀",

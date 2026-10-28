@@ -34,7 +34,13 @@ export type Action =
   | "sleep"
   | "cry"
   | "stomp"
-  | "laugh";
+  | "laugh"
+  | "spin"
+  | "flip"
+  | "clap"
+  | "flex"
+  | "bow"
+  | "think";
 
 export type Tool = "grab" | "punch" | "pet";
 export type SoundName = "step" | "hit" | "pop" | "thud" | "whoosh" | "ko" | "heal";
@@ -133,6 +139,8 @@ export function createNinoEngine(cfg: EngineConfig) {
   let flashUntil = 0;
   let shakeUntil = 0;
   let heightWarnAt = 0;
+  let pendingCmd: string | null = null;
+  let boostUntil = 0;
   let lastDir = 0;
   let lastPx = 0;
   let reversals: number[] = [];
@@ -209,8 +217,9 @@ export function createNinoEngine(cfg: EngineConfig) {
     }
   }
 
-  function damage(n: number) {
-    hp = Math.max(0, hp - n);
+  // Só uma queda muito forte com a vida já baixa derruba o Nino de vez; o resto deixa pelo menos meio coração.
+  function damage(n: number, lethal = false) {
+    hp = Math.max(lethal ? 0 : 1, hp - n);
   }
 
   // Deitado, o corpo ocupa ~1,2 largura para o lado: vira para onde há espaço na tela.
@@ -239,8 +248,8 @@ export function createNinoEngine(cfg: EngineConfig) {
     sound("ko");
     const hd = headPos();
     fx("star", "★", hd.x, hd.y);
-    lock(5200, () => {
-      hp = 6;
+    lock(3500, () => {
+      hp = 7;
       mood = 40;
       action = "getup";
       expr = "surprise";
@@ -280,7 +289,7 @@ export function createNinoEngine(cfg: EngineConfig) {
         mood = clamp(mood + 3, 0, 100);
       }
     } else if (v < 1000) {
-      damage(2);
+      damage(1);
       mood = clamp(mood - 6, 0, 100);
       action = "hurt";
       expr = "sad";
@@ -293,8 +302,8 @@ export function createNinoEngine(cfg: EngineConfig) {
       vx *= 0.5;
       mode = "air";
       src = "jump";
-    } else if (v < 1400) {
-      damage(4);
+    } else if (v < 1500) {
+      damage(2);
       mood = clamp(mood - 10, 0, 100);
       action = "dazed";
       expr = "dizzy";
@@ -307,7 +316,7 @@ export function createNinoEngine(cfg: EngineConfig) {
       mode = "ground";
       lock(2600);
     } else {
-      damage(6);
+      damage(3, true);
       mood = clamp(mood - 16, 0, 100);
       action = "ko";
       expr = "dizzy";
@@ -358,6 +367,11 @@ export function createNinoEngine(cfg: EngineConfig) {
       src = "jump";
       action = "jump";
       expr = "happy";
+      if (Math.random() < 0.25) {
+        action = "flip";
+        vy = -1050;
+        lock(950);
+      }
       if (Math.random() > 0.5 && t - lastTalk > 3500) {
         say("jump", 1800);
         lastTalk = t;
@@ -368,8 +382,8 @@ export function createNinoEngine(cfg: EngineConfig) {
     if (mood < 30) acts = [["stomp", "angry", 2200, "idleAngry"]];
     else if (mood < 40) acts = [["sit", "sad", 3200, "idleSad"], ["look", "sad", 2400, "idleSad"]];
     else if (mood >= 85) acts = [["dance", "love", 3200, "idleLove"], ["wave", "love", 2200, "idleLove"], ["laugh", "happy", 1600, "idleHappy"]];
-    else if (mood >= 68) acts = [["dance", "happy", 3200, "idleHappy"], ["wave", "happy", 2200, "idleHappy"], ["laugh", "happy", 1600, "idleHappy"]];
-    else acts = [["wave", "happy", 2200, "idle"], ["look", "normal", 2400, "idle"], ["sit", "normal", 3600, "idle"], ["dance", "happy", 3000, "idle"]];
+    else if (mood >= 68) acts = [["dance", "happy", 3200, "idleHappy"], ["wave", "happy", 2200, "idleHappy"], ["laugh", "happy", 1600, "idleHappy"], ["spin", "happy", 1500, "idleHappy"], ["clap", "happy", 2200, "idleHappy"], ["flex", "happy", 2200, "idleHappy"]];
+    else acts = [["wave", "happy", 2200, "idle"], ["look", "normal", 2400, "idle"], ["sit", "normal", 3600, "idle"], ["dance", "happy", 3000, "idle"], ["spin", "happy", 1500, "idle"], ["clap", "happy", 2200, "idle"], ["flex", "happy", 2200, "idle"], ["bow", "normal", 1800, "idle"], ["think", "normal", 2600, "idle"]];
     const g = acts[Math.floor(Math.random() * acts.length)];
     action = g[0];
     expr = g[1];
@@ -393,7 +407,7 @@ export function createNinoEngine(cfg: EngineConfig) {
     if (t - lastMood > 1000) {
       lastMood = t;
       mood = clamp(mood + (55 - mood) * 0.015, 0, 100);
-      if (mode === "ground" && !lockUntil && hp < MAX_HP && t - lastRegen > 8000 && hp > 0) {
+      if (mode === "ground" && !lockUntil && hp < MAX_HP && t - lastRegen > 4500 && hp > 0) {
         lastRegen = t;
         hp += 1;
         sound("heal");
@@ -423,7 +437,6 @@ export function createNinoEngine(cfg: EngineConfig) {
       if (x < a.left) {
         x = a.left;
         if (Math.abs(vx) > 900) {
-          damage(1);
           mood = clamp(mood - 4, 0, 100);
           fx("hit", "BAM!", x + w * 0.3, y + h * 0.4);
           say("wall", 1800);
@@ -434,7 +447,6 @@ export function createNinoEngine(cfg: EngineConfig) {
       } else if (x > a.right - w) {
         x = a.right - w;
         if (Math.abs(vx) > 900) {
-          damage(1);
           mood = clamp(mood - 4, 0, 100);
           fx("hit", "BAM!", x + w * 0.7, y + h * 0.4);
           say("wall", 1800);
@@ -468,6 +480,13 @@ export function createNinoEngine(cfg: EngineConfig) {
       return;
     }
 
+    if (pendingCmd && !lockUntil) {
+      const c = pendingCmd;
+      pendingCmd = null;
+      command(c);
+      return;
+    }
+
     if (lockUntil) {
       if (Math.abs(vx) > 12) {
         vx *= Math.exp(-6 * dt);
@@ -489,7 +508,8 @@ export function createNinoEngine(cfg: EngineConfig) {
     }
 
     if (target !== null) {
-      const speed = WALK_PX[o.speed];
+      const boosted = t < boostUntil;
+      const speed = WALK_PX[o.speed] * (boosted ? 2.2 : 1);
       const dist = target - x;
       if (Math.abs(dist) <= speed * dt + 1) {
         x = target;
@@ -500,7 +520,7 @@ export function createNinoEngine(cfg: EngineConfig) {
         const dir = dist > 0 ? 1 : -1;
         x += dir * speed * dt;
         flip = dir < 0;
-        action = o.speed === "fast" ? "run" : "walk";
+        action = o.speed === "fast" || boosted ? "run" : "walk";
         if (t >= walkSoundAt) {
           walkSoundAt = t + (o.speed === "fast" ? 220 : 380);
           sound("step");
@@ -543,8 +563,8 @@ export function createNinoEngine(cfg: EngineConfig) {
     vy = -rand(520, 780);
     mode = "air";
     src = "hit";
-    mood = clamp(mood - 10, 0, 100);
-    damage(1);
+    mood = clamp(mood - 8, 0, 100);
+    if (combo % 3 === 0) damage(1);
     action = "hurt";
     expr = "surprise";
     flashUntil = t + 380;
@@ -746,6 +766,122 @@ export function createNinoEngine(cfg: EngineConfig) {
     lastTalk = t;
   }
 
+  /** Texto livre no balão (respostas da IA ou falas montadas pelo app). */
+  function speak(text: string) {
+    const t = nowFn();
+    bubble = text;
+    bubbleUntil = t + clamp(2200 + text.length * 55, 2600, 9000);
+    lastTalk = t;
+    if (action === "think") {
+      lockUntil = 0;
+      onUnlock = null;
+      defaultUnlock();
+    }
+  }
+
+  /** Mostra que o Nino está pensando enquanto a resposta não chega. */
+  function think() {
+    wake();
+    interact();
+    if (mode !== "ground" || lockUntil) return;
+    target = null;
+    action = "think";
+    expr = "normal";
+    say("cmdListen", 2400);
+    lock(9000);
+  }
+
+  const TIMED: Record<string, [Action, Expression, number]> = {
+    dance: ["dance", "happy", 3600],
+    wave: ["wave", "happy", 2400],
+    sit: ["sit", "normal", 4500],
+    spin: ["spin", "happy", 1800],
+    clap: ["clap", "happy", 2600],
+    flex: ["flex", "happy", 2600],
+    bow: ["bow", "normal", 2200],
+    laugh: ["laugh", "happy", 2000],
+    cry: ["cry", "sad", 3000],
+    angry: ["stomp", "angry", 2400],
+    love: ["laugh", "love", 2200],
+    think: ["think", "normal", 3200],
+  };
+  const CMD_LINE: Record<string, string> = {
+    jump: "cmdJump", flip: "cmdFlip", dance: "cmdDance", wave: "cmdWave", sit: "cmdSit", sleep: "cmdSleep",
+    spin: "cmdSpin", clap: "cmdClap", flex: "cmdFlex", bow: "cmdBow", laugh: "cmdLaugh", cry: "cmdCry",
+    angry: "cmdAngry", love: "cmdLove", think: "cmdThink", walk: "cmdWalk", run: "cmdRun", stop: "cmdStop",
+  };
+
+  /** Executa uma ordem dada por voz ("Nino, pula!"). Devolve false se ele não pode agora. */
+  function command(name: string): boolean {
+    const t = nowFn();
+    if (mode === "held") return false;
+    if (mode === "air") {
+      if (name !== "jump" && name !== "flip") pendingCmd = name;
+      return true;
+    }
+    if (mode === "ground" && lockUntil && (action === "ko" || action === "dazed" || action === "hurt" || action === "getup")) {
+      return false;
+    }
+    wake();
+    interact();
+    lockUntil = 0;
+    onUnlock = null;
+    target = null;
+    const line = CMD_LINE[name] ?? "cmdHeard";
+    const a = cfg.getArena();
+    const w = width();
+
+    if (name === "jump" || name === "flip") {
+      vy = name === "flip" ? -1050 : -950;
+      vx = 0;
+      mode = "air";
+      src = "jump";
+      action = name === "flip" ? "flip" : "jump";
+      expr = "happy";
+      say(line, 1800);
+      sound("pop");
+      if (name === "flip") lock(950);
+      nextActAt = t + 2500;
+      return true;
+    }
+    if (name === "sleep") {
+      startSleep();
+      say(line, 2200);
+      return true;
+    }
+    if (name === "walk" || name === "run") {
+      target = rand(a.left + 8, Math.max(a.left + 9, a.right - w - 8));
+      if (name === "run") boostUntil = t + 5000;
+      say(line, 2000);
+      return true;
+    }
+    if (name === "stop") {
+      action = "idle";
+      expr = baseExpr();
+      say(line, 1800);
+      nextActAt = t + 7000;
+      return true;
+    }
+    const timed = TIMED[name];
+    if (!timed) {
+      say("cmdHeard", 1800);
+      return false;
+    }
+    action = timed[0];
+    expr = timed[1];
+    if (name === "love" || name === "laugh") mood = clamp(mood + 6, 0, 100);
+    if (name === "love") {
+      const hd = headPos();
+      fx("heart", "♥", hd.x - 10, hd.y);
+      fx("heart", "♥", hd.x + 14, hd.y + 8);
+    }
+    say(line, Math.min(timed[2], 2600));
+    sound("pop");
+    lock(timed[2]);
+    nextActAt = t + timed[2] + 1500;
+    return true;
+  }
+
   function greet() {
     action = "wave";
     expr = "happy";
@@ -769,6 +905,9 @@ export function createNinoEngine(cfg: EngineConfig) {
     start,
     stop,
     greet,
+    command,
+    speak,
+    think,
     pointerDown,
     pointerMove,
     pointerUp,

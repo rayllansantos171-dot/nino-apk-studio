@@ -335,3 +335,6 @@ h1, h2, h3, p { margin: 0; }
   border-radius: 50%; color: #fff; background: var(--accent-2); border: 1px solid var(--line-strong);
 }
 .bubble-img { display: block; width: 100%; max-height: 240px; object-fit: cover; border-radius: 12px; margin-bottom: 6px; }
+
+/* balão cresce para cima, assim textos longos não cobrem o Nino */
+.floating-agent .speech { top: auto; bottom: calc(100% - 10px); max-width: 220px; font-size: 13px; }

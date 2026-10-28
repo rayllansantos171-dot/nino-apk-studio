@@ -4,6 +4,10 @@ import { Arena, Fx, NinoEngine, Snapshot, Tool, createNinoEngine } from "../util
 import { SIZE_PX } from "../utils/settings";
 import { useSettings } from "../utils/SettingsContext";
 import { playByName } from "../utils/sound";
+import { askNino } from "@/lib/ai/nino.functions";
+import { respond } from "../utils/replies";
+import { speak } from "../utils/speak";
+import type { VoiceCommand } from "../utils/voiceCommands";
 
 interface FxItem extends Fx {
   id: number;
@@ -75,6 +79,41 @@ export default function FloatingAgent() {
     return () => {
       engine.stop();
       engineRef.current = null;
+    };
+  }, []);
+
+  // Ordens e perguntas por voz: o Nino obedece na hora e responde pelo balão.
+  useEffect(() => {
+    const timers: number[] = [];
+    const onVoice = (e: Event) => {
+      const { text, cmds } = (e as CustomEvent<{ text: string; cmds: VoiceCommand[] }>).detail;
+      const engine = engineRef.current;
+      if (!engine) return;
+      if (cmds.length) {
+        engine.command(cmds[0]);
+        cmds.slice(1).forEach((c, i) => {
+          timers.push(window.setTimeout(() => engineRef.current?.command(c), 2200 * (i + 1)));
+        });
+        return;
+      }
+      engine.think();
+      const finish = (reply: string) => {
+        engineRef.current?.speak(reply);
+        if (settingsRef.current.soundVibration) speak(reply);
+      };
+      const local = respond(text).text;
+      if (typeof navigator !== "undefined" && navigator.onLine === false) {
+        finish(local);
+        return;
+      }
+      askNino({ data: { messages: [{ role: "user", content: text }] } })
+        .then((r) => finish(r.ok ? r.text : local))
+        .catch(() => finish(local));
+    };
+    window.addEventListener("nino-voice", onVoice);
+    return () => {
+      window.removeEventListener("nino-voice", onVoice);
+      timers.forEach((id) => window.clearTimeout(id));
     };
   }, []);
 

@@ -34,6 +34,13 @@ public class ListeningService extends Service {
     private static final String CH_LISTEN = "nino_listen";
     private static final String CH_HEARD = "nino_heard";
     private static final Pattern WAKE = Pattern.compile("\\b(nino|ninho)\\b");
+    private static final Pattern P_FLIP = Pattern.compile("\\b(cambalhota|salto mortal|mortal|pirueta|backflip|flip)\\b");
+    private static final Pattern P_JUMP = Pattern.compile("\\b(pul[aeo]r?|pulinho|pulo|salta[r]?|salte)\\b");
+    private static final Pattern P_SPIN = Pattern.compile("\\b(gir[ae]r?|rodopi[ae]r?|rod[ae]r?|roda)\\b");
+    private static final Pattern P_DANCE = Pattern.compile("\\b(danc[ae]r?|dancinha|bail[ae]r?|rebol[ae]r?)\\b");
+    private static final Pattern P_WAVE = Pattern.compile("\\b(acen[ae]r?|tchau|ola|oi|eai|salve)\\b");
+    private static final Pattern P_WALK = Pattern.compile("\\b(and[ae]r?|caminh[ae]r?|passei[ae]r?|corr[ae]r?|volta)\\b");
+    private static final Pattern P_STOP = Pattern.compile("\\b(pare|parar|quieto|parado|congela[r]?)\\b");
 
     private final Handler h = new Handler(Looper.getMainLooper());
     private SpeechRecognizer sr;
@@ -150,8 +157,25 @@ public class ListeningService extends Service {
         return rest.isEmpty() ? "Oi, Nino!" : rest;
     }
 
+    /** Ordem simples para o Nino que está sobre outros apps (null se não for uma ordem). */
+    static String overlayCommand(String command) {
+        String n = Normalizer.normalize(command, Normalizer.Form.NFD).replaceAll("\\p{M}+", "")
+                .toLowerCase(Locale.ROOT).replaceAll("[^a-z0-9 ]+", " ");
+        if (P_FLIP.matcher(n).find()) return "backflip";
+        if (P_JUMP.matcher(n).find()) return "jump";
+        if (P_SPIN.matcher(n).find()) return "spin";
+        if (P_DANCE.matcher(n).find()) return "dance";
+        if (P_WAVE.matcher(n).find()) return "wave";
+        if (P_STOP.matcher(n).find()) return "stop";
+        if (P_WALK.matcher(n).find()) return "walk";
+        return null;
+    }
+
     /** Abre o app com a frase. Sem permissão de sobreposição, mostra uma notificação para tocar. */
     private void deliver(String command) {
+        // Com o Nino na tela (sobre outros apps), ordens simples são obedecidas ali mesmo, sem abrir o app.
+        String order = overlayCommand(command);
+        if (order != null && FloatingNinoService.perform(order)) return;
         Intent i = new Intent(this, MainActivity.class);
         i.putExtra(NinoListenPlugin.EXTRA_TEXT, command);
         i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_SINGLE_TOP | Intent.FLAG_ACTIVITY_REORDER_TO_FRONT);

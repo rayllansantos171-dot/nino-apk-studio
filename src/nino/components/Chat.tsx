@@ -7,6 +7,7 @@ import { playBang, playHit, playPop, playSend, playThud, vibrate } from "../util
 import { useSettings } from "../utils/SettingsContext";
 import { askNino } from "@/lib/ai/nino.functions";
 import { fileToDataUrl } from "../utils/image";
+import { speak } from "../utils/speak";
 
 interface Msg {
   id: number;
@@ -19,23 +20,6 @@ interface Msg {
 const now = () => new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
 
 const SUGGESTIONS = ["Qual seu propósito?", "Me conta uma piada", "Que horas são?"];
-
-/** Lê a resposta em voz alta (usado quando a pergunta veio por voz). */
-function speak(text: string) {
-  try {
-    const synth = window.speechSynthesis;
-    if (!synth) return;
-    const clean = text.replace(/[\u{1F000}-\u{1FFFF}\u{2600}-\u{27BF}\uFE0F]/gu, "").trim();
-    if (!clean) return;
-    const u = new SpeechSynthesisUtterance(clean);
-    u.lang = "pt-BR";
-    u.rate = 1.05;
-    synth.cancel();
-    synth.speak(u);
-  } catch {
-    /* ignore */
-  }
-}
 
 export default function Chat({
   onBack,

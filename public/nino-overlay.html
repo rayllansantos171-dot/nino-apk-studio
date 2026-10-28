@@ -11,6 +11,14 @@ html,body{margin:0;background:transparent;overflow:hidden}
 .drag #body{animation:wiggle .15s infinite alternate}
 .wave #armR{animation:wave .25s infinite alternate;transform-origin:78px 62px}
 .jump #body{animation:jump .5s ease-out}
+.dance #body{animation:wiggle .3s infinite alternate}
+.dance #armR{animation:wave .25s infinite alternate;transform-origin:78px 62px}
+.dance #legL{animation:legA .3s infinite alternate}
+.dance #legR{animation:legB .3s infinite alternate}
+.spin #n{animation:spinT .6s linear infinite}
+.backflip #n{animation:bflip .9s ease-in-out 1}
+@keyframes spinT{0%{transform:scaleX(1)}50%{transform:scaleX(-1)}100%{transform:scaleX(1)}}
+@keyframes bflip{0%{transform:rotate(0)}100%{transform:rotate(-360deg)}}
 @keyframes legA{from{transform:translateY(0)}to{transform:translateY(-6px)}}
 @keyframes legB{from{transform:translateY(-6px)}to{transform:translateY(0)}}
 @keyframes bob{to{transform:translateY(-2px)}}

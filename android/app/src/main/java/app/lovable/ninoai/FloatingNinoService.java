@@ -39,12 +39,40 @@ public class FloatingNinoService extends Service {
     private int stateTicks = 0;
     private float vy = 0;
     private int sizePx;
+    private static volatile FloatingNinoService instance;
+
+    /** Faz o Nino sobre outros apps obedecer uma ordem de voz. Devolve false se ele não está na tela. */
+    static boolean perform(final String cmd) {
+        final FloatingNinoService s = instance;
+        if (s == null || s.view == null) return false;
+        s.h.post(new Runnable() { @Override public void run() { s.doCommand(cmd); } });
+        return true;
+    }
+
+    private int floorY() { return screenH() - sizePx - 120; }
+
+    private void doCommand(String cmd) {
+        if (view == null || dragging) return;
+        switch (cmd) {
+            case "jump":
+                lp.y = Math.min(lp.y, floorY()) - 1; vy = -24; setState("jump"); stateTicks = 30; break;
+            case "backflip":
+                lp.y = Math.min(lp.y, floorY()) - 1; vy = -28; setState("backflip"); stateTicks = 30; break;
+            case "dance": setState("dance"); stateTicks = 90; break;
+            case "wave": setState("wave"); stateTicks = 60; break;
+            case "spin": setState("spin"); stateTicks = 36; break;
+            case "walk": if (rnd.nextBoolean()) dir = -dir; setState("walk"); stateTicks = 240; break;
+            case "stop": setState("idle"); stateTicks = 200; break;
+            default: break;
+        }
+    }
 
     @Override public IBinder onBind(Intent intent) { return null; }
 
     @Override
     public void onCreate() {
         super.onCreate();
+        instance = this;
         startAsForeground();
         // Sem permissão de sobreposição (por exemplo, revogada nos ajustes) o serviço encerra sem travar o app.
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && !Settings.canDrawOverlays(this)) {
@@ -114,7 +142,7 @@ public class FloatingNinoService extends Service {
     private final Runnable tick = new Runnable() {
         @Override public void run() {
             if (!dragging && view != null) {
-                int floor = screenH() - sizePx - 120;
+                int floor = floorY();
                 if (lp.y < floor) { // cai com gravidade
                     vy += 2.5f; lp.y = Math.min(floor, lp.y + (int) vy);
                     if (lp.y >= floor) { vy = 0; setState("jump"); stateTicks = 15; }
@@ -167,6 +195,7 @@ public class FloatingNinoService extends Service {
 
     @Override
     public void onDestroy() {
+        if (instance == this) instance = null;
         h.removeCallbacks(tick);
         if (view != null && wm != null) {
             try { wm.removeView(view); } catch (RuntimeException ignored) { }
