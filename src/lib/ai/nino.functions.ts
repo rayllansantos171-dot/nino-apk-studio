@@ -14,7 +14,7 @@ Ajude o usuário de verdade com o que ele pedir. Seu criador é o Rayllan Santos
 Data/hora atual: ${"{NOW}"}.`;
 
 export const askNino = createServerFn({ method: "POST" })
-  .inputValidator((d: unknown) => Input.parse(d))
+  .validator((d: unknown) => Input.parse(d))
   .handler(async ({ data }) => {
     const apiKey = process.env["LOVABLE_API_KEY"];
     if (!apiKey) return { ok: false as const, error: "IA não configurada." };
