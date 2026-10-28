@@ -97,16 +97,6 @@ export default function Home({
         </button>
 
         <div className="list-card inner">
-          <button className="list-row" onClick={() => update({ roaming: !settings.roaming })}>
-            <span className="row-ic">
-              <IconMove size={20} />
-            </span>
-            <span className="row-text">
-              <strong>Movimento</strong>
-              <small>{settings.roaming ? "Passeio suave pela tela" : "Parado"}</small>
-            </span>
-            <IconChevron size={18} className="chev" />
-          </button>
           <button className="list-row" onClick={() => update({ bubbles: !settings.bubbles })}>
             <span className="row-ic">
               <IconChat size={20} />
