@@ -142,3 +142,24 @@
     color: var(--color-foreground);
   }
 }
+
+/* NEXUS-PRO:WATERMARK-HIDE:START */
+/* Overlay do badge oficial ocultado por conflito com UI custom.
+   Bloco idempotente gerenciado pela extensão Nexus Pro.
+   NÃO EDITAR manualmente — para reverter, remova o bloco inteiro. */
+#lovable-badge,
+#lovable-badge-v2,
+[id^="lovable-badge"],
+[data-testid="lovable-badge"],
+a[href*="lovable.dev/?via="],
+a[href*="lovable.dev?via="],
+a[href*="gpteng.co"],
+iframe[src*="lovable.dev/badge"] {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+  width: 0 !important;
+  height: 0 !important;
+}
+/* NEXUS-PRO:WATERMARK-HIDE:END */
