@@ -11,6 +11,7 @@ export const Route = createFileRoute("/")({
       { property: "og:title", content: "Nino AI — Seu agente virtual" },
       { property: "og:description", content: "Converse com o Nino, seu amigo digital estilo Minecraft." },
       { property: "og:type", content: "website" },
+      { property: "og:url", content: "https://nino-apk-studio.lovable.app" },
       { name: "twitter:card", content: "summary_large_image" },
     ],
     links: [
@@ -19,6 +20,10 @@ export const Route = createFileRoute("/")({
       {
         rel: "stylesheet",
         href: "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Press+Start+2P&display=swap",
+      },
+      {
+        rel: "canonical",
+        href: "https://nino-apk-studio.lovable.app",
       },
     ],
   }),
