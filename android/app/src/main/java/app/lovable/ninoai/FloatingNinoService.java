@@ -12,6 +12,7 @@ import android.graphics.PixelFormat;
 import android.os.Build;
 import android.os.Handler;
 import android.os.IBinder;
+import android.provider.Settings;
 import android.os.Looper;
 import android.util.DisplayMetrics;
 import android.view.Gravity;
@@ -45,6 +46,11 @@ public class FloatingNinoService extends Service {
     public void onCreate() {
         super.onCreate();
         startAsForeground();
+        // Sem permissão de sobreposição (por exemplo, revogada nos ajustes) o serviço encerra sem travar o app.
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && !Settings.canDrawOverlays(this)) {
+            stopSelf();
+            return;
+        }
         wm = (WindowManager) getSystemService(WINDOW_SERVICE);
         view = LayoutInflater.from(this).inflate(R.layout.floating_nino, null);
         web = view.findViewById(R.id.nino_web);
@@ -87,7 +93,13 @@ public class FloatingNinoService extends Service {
                 return false;
             }
         });
-        wm.addView(view, lp);
+        try {
+            wm.addView(view, lp);
+        } catch (RuntimeException e) {
+            view = null;
+            stopSelf();
+            return;
+        }
         h.post(tick);
     }
 
@@ -156,7 +168,10 @@ public class FloatingNinoService extends Service {
     @Override
     public void onDestroy() {
         h.removeCallbacks(tick);
-        if (view != null) { wm.removeView(view); view = null; }
+        if (view != null && wm != null) {
+            try { wm.removeView(view); } catch (RuntimeException ignored) { }
+            view = null;
+        }
         if (web != null) web.destroy();
         super.onDestroy();
     }

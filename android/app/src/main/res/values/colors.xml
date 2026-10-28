@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="colorPrimary">#7C3AED</color>
+    <color name="colorPrimaryDark">#07040F</color>
+    <color name="colorAccent">#A855F7</color>
+    <color name="nino_bg">#07040F</color>
+</resources>

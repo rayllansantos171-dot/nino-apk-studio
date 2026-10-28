@@ -345,6 +345,10 @@ export function createNinoEngine(cfg: EngineConfig) {
     const r = Math.random();
     if (o.roaming && r < 0.5) {
       target = rand(a.left + 8, Math.max(a.left + 9, a.right - w - 8));
+      if (Math.random() > 0.55 && t - lastTalk > 3500) {
+        say("walk", 2200);
+        lastTalk = t;
+      }
       return;
     }
     if (r < 0.62) {
@@ -354,6 +358,10 @@ export function createNinoEngine(cfg: EngineConfig) {
       src = "jump";
       action = "jump";
       expr = "happy";
+      if (Math.random() > 0.5 && t - lastTalk > 3500) {
+        say("jump", 1800);
+        lastTalk = t;
+      }
       return;
     }
     let acts: Array<[Action, Expression, number, string]>;
@@ -365,7 +373,7 @@ export function createNinoEngine(cfg: EngineConfig) {
     const g = acts[Math.floor(Math.random() * acts.length)];
     action = g[0];
     expr = g[1];
-    if (Math.random() > 0.4 && t - lastTalk > 4000) {
+    if (Math.random() > 0.25 && t - lastTalk > 3500) {
       say(g[3], g[2]);
       lastTalk = t;
     }

@@ -171,3 +171,17 @@ export const IconCrown =({ size, className }: P) => (
     <path d="M3 18V8l5 4 4-7 4 7 5-4v10z" />
   </svg>
 );
+
+export const IconLock = ({ size, className }: P) => (
+  <svg {...base(size)} className={className}>
+    <rect x="5" y="11" width="14" height="9" rx="2.5" />
+    <path d="M8 11V8a4 4 0 0 1 8 0v3" />
+    <path d="M12 15v2" />
+  </svg>
+);
+export const IconStore = ({ size, className }: P) => (
+  <svg {...base(size)} className={className}>
+    <path d="M5 8h14l-1 12H6L5 8z" />
+    <path d="M9 8V6a3 3 0 0 1 6 0v2" />
+  </svg>
+);
