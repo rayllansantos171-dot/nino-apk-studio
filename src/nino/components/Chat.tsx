@@ -71,13 +71,14 @@ export default function Chat({ onBack }: { onBack: () => void }) {
       setTyping(false);
       if (settings.soundVibration && !defend) playPop();
     };
-    if (useLocal) {
+    const offline = typeof navigator !== "undefined" && navigator.onLine === false;
+    if (useLocal || offline) {
       window.setTimeout(() => deliver(local.text, local.defend), local.defend ? 450 : 700);
       return;
     }
     askNino({ data: { messages: history } })
-      .then((r) => deliver(r.ok ? r.text : r.error))
-      .catch(() => deliver("Ops, perdi a conexão. Tente de novo! 📡"));
+      .then((r) => deliver(r.ok ? r.text : local.text))
+      .catch(() => deliver(local.text));
   };
 
   return (
