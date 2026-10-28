@@ -1,6 +1,5 @@
 import React from "react";
 import Nino from "../components/Nino";
-import { Toggle } from "../components/Settings";
 import { IconChat, IconChevron, IconCube, IconMove, IconRocket, IconSettings, IconShield } from "../components/Icons";
 import { useSettings } from "../utils/SettingsContext";
 import { setNativeOverlay } from "../utils/nativeOverlay";
@@ -62,8 +61,8 @@ export default function Home({
           <Nino size={150} action="idle" expression="normal" glow={settings.glow} particles={settings.particles} />
         </button>
         <div className="status-pill">
-          <i className={`dot ${settings.floating ? "ok" : ""}`} />
-          <b>{settings.floating ? "Agente ativo" : "Agente pausado"}</b>
+          <i className={`dot ${settings.onScreen ? "ok" : ""}`} />
+          <b>{settings.onScreen ? "Agente ativo" : "Agente pausado"}</b>
           <span>| Pronto para te acompanhar</span>
         </div>
       </section>
@@ -77,19 +76,14 @@ export default function Home({
             <strong className="lg">Agente flutuante</strong>
             <small>Nino vai andar pela sua tela, conversar e te ajudar em tudo.</small>
           </span>
-          <Toggle
-            on={settings.floating}
-            onChange={(v) => update({ floating: v, onScreen: v ? settings.onScreen : false })}
-            label="Agente flutuante"
-          />
         </div>
 
         <button
           className={`primary-btn wide ${settings.onScreen ? "active" : ""}`}
-          disabled={!settings.floating}
+          aria-pressed={settings.onScreen}
           onClick={() => {
             const next = !settings.onScreen;
-            update({ onScreen: next });
+            update({ floating: next, onScreen: next });
             void setNativeOverlay(next);
           }}
         >

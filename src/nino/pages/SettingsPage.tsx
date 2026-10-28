@@ -11,8 +11,8 @@ export default function SettingsPage({ mode, onOpenShop }: { mode: "aparencia" |
             <h2>Aparência</h2>
             <p>Personalize o Nino do seu jeito.</p>
           </div>
-          <button className="icon-btn" onClick={onOpenShop} aria-label="Abrir loja de skins">
-            <IconStore size={20} />
+          <button className="icon-btn store" onClick={onOpenShop} aria-label="Abrir loja de skins">
+            <IconStore size={26} />
           </button>
         </header>
         <AppearancePanel />

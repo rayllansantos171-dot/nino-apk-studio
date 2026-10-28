@@ -181,7 +181,9 @@ export const IconLock = ({ size, className }: P) => (
 );
 export const IconStore = ({ size, className }: P) => (
   <svg {...base(size)} className={className}>
-    <path d="M5 8h14l-1 12H6L5 8z" />
-    <path d="M9 8V6a3 3 0 0 1 6 0v2" />
+    <path d="M4.5 4h15l1.5 5H3l1.5-5z" />
+    <path d="M3 9a3 3 0 0 0 6 0 3 3 0 0 0 6 0 3 3 0 0 0 6 0" />
+    <path d="M5 11.6V20h14v-8.4" />
+    <path d="M10 20v-5h4v5" />
   </svg>
 );

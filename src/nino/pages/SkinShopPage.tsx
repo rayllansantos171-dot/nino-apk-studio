@@ -29,8 +29,8 @@ export default function SkinShopPage({ onBack }: { onBack: () => void }) {
           <h2>Loja de Skins</h2>
           <p>Escolha uma nova aparência.</p>
         </div>
-        <span className="icon-btn static" aria-hidden="true">
-          <IconStore size={20} />
+        <span className="icon-btn store static" aria-hidden="true">
+          <IconStore size={26} />
         </span>
       </header>
 
