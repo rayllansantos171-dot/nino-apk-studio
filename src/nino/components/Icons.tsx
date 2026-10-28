@@ -187,3 +187,28 @@ export const IconStore = ({ size, className }: P) => (
     <path d="M10 20v-5h4v5" />
   </svg>
 );
+
+export const IconImage = ({ size, className }: P) => (
+  <svg {...base(size)} className={className}>
+    <rect x="3.5" y="4.5" width="17" height="15" rx="3" />
+    <circle cx="9" cy="10" r="1.6" />
+    <path d="M4 17l5-4.5 3.5 3 3-2.5L20 16" />
+  </svg>
+);
+export const IconCamera = ({ size, className }: P) => (
+  <svg {...base(size)} className={className}>
+    <path d="M4 8h3l1.5-2.5h7L17 8h3a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z" />
+    <circle cx="12" cy="13" r="3.5" />
+  </svg>
+);
+export const IconMic = ({ size, className }: P) => (
+  <svg {...base(size)} className={className}>
+    <rect x="9" y="3" width="6" height="11" rx="3" />
+    <path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21M9 21h6" />
+  </svg>
+);
+export const IconClose = ({ size, className }: P) => (
+  <svg {...base(size)} className={className}>
+    <path d="M6 6l12 12M18 6L6 18" />
+  </svg>
+);

@@ -324,3 +324,14 @@ h1, h2, h3, p { margin: 0; }
   width: 52px; height: 52px; border-radius: 16px; border: 1.5px solid #4f8dfd; color: #7aa7ff;
   background: #0d0e22; box-shadow: 0 0 14px color-mix(in srgb, #4f8dfd 28%, transparent);
 }
+
+/* ===== Fotos no chat ===== */
+.attach-btn { flex: none; width: 36px; height: 40px; display: grid; place-items: center; color: var(--accent-soft); border-radius: 10px; }
+.attach-btn:active { background: color-mix(in srgb, var(--accent) 16%, transparent); }
+.attach-preview { position: relative; width: 84px; height: 84px; margin: 0 0 8px; }
+.attach-preview img { width: 100%; height: 100%; object-fit: cover; border-radius: 14px; border: 1px solid var(--line-strong); }
+.attach-remove {
+  position: absolute; top: -6px; right: -6px; width: 22px; height: 22px; display: grid; place-items: center;
+  border-radius: 50%; color: #fff; background: var(--accent-2); border: 1px solid var(--line-strong);
+}
+.bubble-img { display: block; width: 100%; max-height: 240px; object-fit: cover; border-radius: 12px; margin-bottom: 6px; }

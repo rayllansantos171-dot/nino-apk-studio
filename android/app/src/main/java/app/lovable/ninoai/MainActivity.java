@@ -16,6 +16,7 @@ public class MainActivity extends BridgeActivity {
     @Override
     public void onCreate(Bundle savedInstanceState) {
         registerPlugin(NinoOverlayPlugin.class);
+        registerPlugin(NinoListenPlugin.class);
         super.onCreate(savedInstanceState);
         setupInsets();
     }

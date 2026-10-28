@@ -3,14 +3,24 @@ import { z } from "zod";
 
 const Input = z.object({
   messages: z
-    .array(z.object({ role: z.enum(["user", "assistant"]), content: z.string().min(1).max(4000) }))
+    .array(
+      z.object({
+        role: z.enum(["user", "assistant"]),
+        content: z.string().min(1).max(4000),
+        image: z
+          .string()
+          .regex(/^data:image\/(jpeg|png|webp);base64,/)
+          .max(2_500_000)
+          .optional(),
+      }),
+    )
     .min(1)
     .max(40),
 });
 
 const SYSTEM = `Você é o Nino, um mascote/agente virtual 3D estilo Minecraft (voxel), fofo, animado e brincalhão.
 Fale sempre em português do Brasil, de forma curta (1 a 3 frases), calorosa e com no máximo 1 ou 2 emojis.
-Ajude o usuário de verdade com o que ele pedir. Seu criador é o Rayllan Santos ("seu papai"), programador de 20 anos de Ubatuba, SP — só mencione isso se perguntarem.
+Ajude o usuário de verdade com o que ele pedir. Quando ele mandar uma foto, descreva e comente o que vê de forma útil e simpática. Seu criador é o Rayllan Santos ("seu papai"), programador de 20 anos de Ubatuba, SP — só mencione isso se perguntarem.
 Data/hora atual: ${"{NOW}"}.`;
 
 export const askNino = createServerFn({ method: "POST" })
@@ -34,7 +44,17 @@ export const askNino = createServerFn({ method: "POST" })
       const result = streamText({
         model: provider.responses("openai/gpt-6-astra"),
         system: SYSTEM.replace("{NOW}", now),
-        messages: data.messages,
+        messages: data.messages.map((m) =>
+          m.role === "user" && m.image
+            ? {
+                role: "user" as const,
+                content: [
+                  { type: "text" as const, text: m.content },
+                  { type: "image" as const, image: m.image },
+                ],
+              }
+            : { role: m.role, content: m.content },
+        ),
         onError: ({ error }) => {
           failure = error;
         },

@@ -1,8 +1,9 @@
 import React from "react";
 import Nino from "../components/Nino";
-import { IconChat, IconChevron, IconCube, IconMove, IconRocket, IconSettings, IconShield } from "../components/Icons";
+import { IconChat, IconChevron, IconCube, IconMic, IconMove, IconRocket, IconSettings, IconShield } from "../components/Icons";
 import { useSettings } from "../utils/SettingsContext";
-import { setNativeOverlay } from "../utils/nativeOverlay";
+import { isNativeAndroid, setNativeOverlay } from "../utils/nativeOverlay";
+import { getNativeListening, setNativeListening } from "../utils/nativeListen";
 
 /** Tela inicial de boas-vindas. */
 export function Splash({ onStart }: { onStart: () => void }) {
@@ -43,6 +44,30 @@ export default function Home({
   onOpenSettings: () => void;
 }) {
   const { settings, update } = useSettings();
+  const native = isNativeAndroid();
+
+  // A escuta pode ser parada pela notificação; mantém o botão igual ao estado real.
+  React.useEffect(() => {
+    if (!native) return;
+    const sync = () => {
+      void getNativeListening().then((running) => {
+        update({ listening: running });
+      });
+    };
+    sync();
+    const onVisible = () => {
+      if (document.visibilityState === "visible") sync();
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => document.removeEventListener("visibilitychange", onVisible);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [native]);
+
+  const toggleListening = async () => {
+    const next = !settings.listening;
+    const running = await setNativeListening(next);
+    update({ listening: next ? running : false });
+  };
 
   return (
     <div className="home panel-scroll">
@@ -111,6 +136,18 @@ export default function Home({
             </span>
             <IconChevron size={18} className="chev" />
           </button>
+          {native && (
+            <button className="list-row" onClick={() => void toggleListening()} aria-pressed={settings.listening}>
+              <span className="row-ic">
+                <IconMic size={20} />
+              </span>
+              <span className="row-text">
+                <strong>Escutar em segundo plano</strong>
+                <small>{settings.listening ? "Ouvindo: diga “Nino” e o que precisa" : "Desativado"}</small>
+              </span>
+              <IconChevron size={18} className="chev" />
+            </button>
+          )}
         </div>
 
         <div className="info-row">
@@ -119,6 +156,17 @@ export default function Home({
           </span>
           <p>Para aparecer sobre outros aplicativos, permita a sobreposição nas configurações do Android.</p>
         </div>
+        {native && (
+          <div className="info-row">
+            <span className="row-ic">
+              <IconMic size={22} />
+            </span>
+            <p>
+              O Nino só ouve com a escuta ligada, e uma notificação fica visível enquanto isso. Para parar, desligue aqui
+              ou toque em “Parar” na notificação. O áudio é reconhecido pelo Android e não fica gravado no app.
+            </p>
+          </div>
+        )}
       </section>
 
       <button className="outline-btn chat-cta" onClick={onOpenChat}>

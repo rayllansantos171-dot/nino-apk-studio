@@ -6,6 +6,7 @@ import ChatPage from "./pages/ChatPage";
 import SettingsPage from "./pages/SettingsPage";
 import SkinShopPage from "./pages/SkinShopPage";
 import FloatingAgent from "./components/FloatingAgent";
+import { onVoiceCommand } from "./utils/nativeListen";
 import { IconAgent, IconPalette, IconSettings } from "./components/Icons";
 
 type View = "splash" | "agente" | "aparencia" | "ajustes" | "chat" | "loja";
@@ -22,6 +23,17 @@ function Shell() {
     }
   });
   const [lastTab, setLastTab] = useState<Exclude<View, "splash" | "chat" | "loja">>("agente");
+
+  // Frase dita ao Nino em segundo plano ("Nino, que horas são?") chega aqui e abre o chat.
+  const [voiceText, setVoiceText] = useState<string | null>(null);
+  useEffect(
+    () =>
+      onVoiceCommand((text) => {
+        setVoiceText(text);
+        setView("chat");
+      }),
+    [],
+  );
 
   // Botão "voltar" do Android: cada tela entra no histórico do WebView em vez de fechar o app.
   const prevView = useRef<View | null>(null);
@@ -71,7 +83,9 @@ function Shell() {
         {view === "aparencia" && <SettingsPage mode="aparencia" onOpenShop={() => setView("loja")} />}
         {view === "loja" && <SkinShopPage onBack={() => goTab("aparencia")} />}
         {view === "ajustes" && <SettingsPage mode="ajustes" />}
-        {view === "chat" && <ChatPage onBack={() => setView(lastTab)} />}
+        {view === "chat" && (
+          <ChatPage onBack={() => setView(lastTab)} voiceText={voiceText} onVoiceHandled={() => setVoiceText(null)} />
+        )}
       </main>
 
       {showNav && (

@@ -15,6 +15,7 @@ export interface Settings {
   bubbles: boolean; // balões de conversa
   freeDrag: boolean; // posição livre para arrastar
   notifications: boolean;
+  listening: boolean; // escuta em segundo plano (Android)
   soundVibration: boolean;
 }
 
@@ -31,6 +32,7 @@ export const DEFAULT_SETTINGS: Settings = {
   bubbles: true,
   freeDrag: true,
   notifications: true,
+  listening: false,
   soundVibration: true,
 };
 

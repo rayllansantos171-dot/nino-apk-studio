@@ -1,24 +1,51 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import Nino from "./Nino";
 import DefendScene from "./DefendScene";
-import { IconBack, IconSend, IconSmile } from "./Icons";
+import { IconBack, IconCamera, IconClose, IconImage, IconSend } from "./Icons";
 import { SCENE_LINES, respond, Weapon } from "../utils/replies";
 import { playBang, playHit, playPop, playSend, playThud, vibrate } from "../utils/sound";
 import { useSettings } from "../utils/SettingsContext";
 import { askNino } from "@/lib/ai/nino.functions";
+import { fileToDataUrl } from "../utils/image";
 
 interface Msg {
   id: number;
   from: "nino" | "user";
   text: string;
   time: string;
+  image?: string;
 }
 
 const now = () => new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
 
 const SUGGESTIONS = ["Qual seu propósito?", "Me conta uma piada", "Que horas são?"];
 
-export default function Chat({ onBack }: { onBack: () => void }) {
+/** Lê a resposta em voz alta (usado quando a pergunta veio por voz). */
+function speak(text: string) {
+  try {
+    const synth = window.speechSynthesis;
+    if (!synth) return;
+    const clean = text.replace(/[\u{1F000}-\u{1FFFF}\u{2600}-\u{27BF}\uFE0F]/gu, "").trim();
+    if (!clean) return;
+    const u = new SpeechSynthesisUtterance(clean);
+    u.lang = "pt-BR";
+    u.rate = 1.05;
+    synth.cancel();
+    synth.speak(u);
+  } catch {
+    /* ignore */
+  }
+}
+
+export default function Chat({
+  onBack,
+  voiceText,
+  onVoiceHandled,
+}: {
+  onBack: () => void;
+  voiceText?: string | null;
+  onVoiceHandled?: () => void;
+}) {
   const { settings } = useSettings();
   const [messages, setMessages] = useState<Msg[]>([
     { id: 1, from: "nino", text: "Olá! 👋 Eu sou o Nino! Seu agente de IA. Como posso te ajudar hoje?", time: now() },
@@ -28,6 +55,11 @@ export default function Chat({ onBack }: { onBack: () => void }) {
   const [scene, setScene] = useState<{ weapon: Weapon; line: string } | null>(null);
   const endRef = useRef<HTMLDivElement>(null);
   const idRef = useRef(2);
+  const [pendingImage, setPendingImage] = useState<string | null>(null);
+  const galleryRef = useRef<HTMLInputElement>(null);
+  const cameraRef = useRef<HTMLInputElement>(null);
+  const speakRef = useRef(false);
+  const voiceRef = useRef<string | null>(null);
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
@@ -46,20 +78,41 @@ export default function Chat({ onBack }: { onBack: () => void }) {
     }
   };
 
-  const send = (text: string) => {
-    const clean = text.trim();
+  const pickFile = async (file?: File | null) => {
+    if (!file) return;
+    try {
+      setPendingImage(await fileToDataUrl(file));
+    } catch {
+      setMessages((m) => [
+        ...m,
+        { id: idRef.current++, from: "nino", text: "Não consegui abrir essa foto. Tenta outra? 📷", time: now() },
+      ]);
+    }
+  };
+
+  const send = (text: string, image: string | null = null, fromVoice = false) => {
+    const clean = text.trim() || (image ? "O que você vê nessa foto?" : "");
     if (!clean || typing) return;
+    speakRef.current = fromVoice;
     if (settings.soundVibration) {
       playSend();
       vibrate(15);
     }
     const local = respond(clean);
-    const useLocal = !!local.defend || local.text.includes("Rayllan");
-    const history = [...messages.slice(1), { from: "user" as const, text: clean }]
+    const useLocal = !image && (!!local.defend || local.text.includes("Rayllan"));
+    const history = [...messages.slice(1), { from: "user" as const, text: clean, image: image ?? undefined }]
       .slice(-20)
-      .map((m) => ({ role: m.from === "user" ? ("user" as const) : ("assistant" as const), content: m.text }));
-    setMessages((m) => [...m, { id: idRef.current++, from: "user", text: clean, time: now() }]);
+      .map((m, i, arr) => ({
+        role: m.from === "user" ? ("user" as const) : ("assistant" as const),
+        content: m.image && i < arr.length - 1 ? `${m.text} [foto enviada]` : m.text,
+        ...(m.image && i === arr.length - 1 ? { image: m.image } : {}),
+      }));
+    setMessages((m) => [
+      ...m,
+      { id: idRef.current++, from: "user", text: clean, time: now(), image: image ?? undefined },
+    ]);
     setInput("");
+    setPendingImage(null);
     setTyping(true);
     const deliver = (text: string, defend?: Weapon) => {
       if (defend) {
@@ -70,16 +123,33 @@ export default function Chat({ onBack }: { onBack: () => void }) {
       setMessages((m) => [...m, { id: idRef.current++, from: "nino", text, time: now() }]);
       setTyping(false);
       if (settings.soundVibration && !defend) playPop();
+      if (speakRef.current) speak(text);
     };
     const offline = typeof navigator !== "undefined" && navigator.onLine === false;
     if (useLocal || offline) {
-      window.setTimeout(() => deliver(local.text, local.defend), local.defend ? 450 : 700);
+      const offlineText = image
+        ? "Estou sem internet e não consigo ver fotos agora. Tenta de novo quando voltar! 📶"
+        : local.text;
+      window.setTimeout(() => deliver(offlineText, local.defend), local.defend ? 450 : 700);
       return;
     }
     askNino({ data: { messages: history } })
-      .then((r) => deliver(r.ok ? r.text : local.text))
-      .catch(() => deliver(local.text));
+      .then((r) => deliver(r.ok ? r.text : image ? r.error : local.text))
+      .catch(() => deliver(image ? "Não consegui ver a foto agora. Tenta de novo! 📷" : local.text));
   };
+
+  // Pergunta feita por voz (o Nino ouviu em segundo plano): responde no chat e lê a resposta.
+  useEffect(() => {
+    if (!voiceText) {
+      voiceRef.current = null;
+      return;
+    }
+    if (typing || voiceRef.current === voiceText) return;
+    voiceRef.current = voiceText;
+    send(voiceText, null, true);
+    onVoiceHandled?.();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [voiceText, typing]);
 
   return (
     <div className={`chat ${scene ? "shake" : ""}`}>
@@ -105,6 +175,7 @@ export default function Chat({ onBack }: { onBack: () => void }) {
               </div>
             )}
             <div className={`bubble ${m.from}`}>
+              {m.image && <img className="bubble-img" src={m.image} alt="Foto enviada" />}
               <p>{m.text}</p>
               <time>{m.time}</time>
             </div>
@@ -133,21 +204,55 @@ export default function Chat({ onBack }: { onBack: () => void }) {
             </button>
           ))}
         </div>
+        {pendingImage && (
+          <div className="attach-preview">
+            <img src={pendingImage} alt="Foto para enviar" />
+            <button type="button" className="attach-remove" onClick={() => setPendingImage(null)} aria-label="Remover foto">
+              <IconClose size={14} />
+            </button>
+          </div>
+        )}
         <form
           className="chat-input"
           onSubmit={(e) => {
             e.preventDefault();
-            send(input);
+            send(input, pendingImage);
           }}
         >
-          <IconSmile className="input-ic" />
+          <input
+            ref={galleryRef}
+            type="file"
+            accept="image/*"
+            hidden
+            onChange={(e) => {
+              void pickFile(e.target.files?.[0]);
+              e.target.value = "";
+            }}
+          />
+          <input
+            ref={cameraRef}
+            type="file"
+            accept="image/*"
+            capture="environment"
+            hidden
+            onChange={(e) => {
+              void pickFile(e.target.files?.[0]);
+              e.target.value = "";
+            }}
+          />
+          <button type="button" className="attach-btn" onClick={() => galleryRef.current?.click()} aria-label="Enviar foto da galeria">
+            <IconImage size={20} />
+          </button>
+          <button type="button" className="attach-btn" onClick={() => cameraRef.current?.click()} aria-label="Tirar foto">
+            <IconCamera size={20} />
+          </button>
           <input
             value={input}
             onChange={(e) => setInput(e.target.value)}
             placeholder="Digite sua mensagem..."
             aria-label="Mensagem"
           />
-          <button type="submit" className="send-btn" aria-label="Enviar" disabled={!input.trim()}>
+          <button type="submit" className="send-btn" aria-label="Enviar" disabled={!input.trim() && !pendingImage}>
             <IconSend />
           </button>
         </form>
