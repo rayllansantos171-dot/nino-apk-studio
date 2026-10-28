@@ -1,0 +1,39 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<style>
+html,body{margin:0;background:transparent;overflow:hidden}
+#n{width:96px;height:96px;transform-origin:50% 100%}
+#n.flip{transform:scaleX(-1)}
+.walk #legL{animation:legA .4s infinite alternate}
+.walk #legR{animation:legB .4s infinite alternate}
+.walk #body{animation:bob .2s infinite alternate}
+.idle #body{animation:breath 1.6s infinite ease-in-out}
+.drag #body{animation:wiggle .15s infinite alternate}
+.wave #armR{animation:wave .25s infinite alternate;transform-origin:78px 62px}
+.jump #body{animation:jump .5s ease-out}
+@keyframes legA{from{transform:translateY(0)}to{transform:translateY(-6px)}}
+@keyframes legB{from{transform:translateY(-6px)}to{transform:translateY(0)}}
+@keyframes bob{to{transform:translateY(-2px)}}
+@keyframes breath{50%{transform:translateY(-2px)}}
+@keyframes wiggle{from{transform:rotate(-6deg)}to{transform:rotate(6deg)}}
+@keyframes wave{from{transform:rotate(-20deg)}to{transform:rotate(30deg)}}
+@keyframes jump{50%{transform:translateY(-22px)}}
+#eyes{animation:blink 4s infinite}
+@keyframes blink{0%,94%,100%{transform:scaleY(1)}97%{transform:scaleY(.1)}}
+#eyes{transform-origin:50px 42px}
+</style></head>
+<body><div id="w" class="idle"><svg id="n" viewBox="0 0 100 100">
+<g id="legL"><rect x="34" y="78" width="12" height="16" fill="#5b3fd6"/></g>
+<g id="legR"><rect x="54" y="78" width="12" height="16" fill="#5b3fd6"/></g>
+<g id="body">
+<rect x="28" y="56" width="44" height="26" fill="#7c5cff"/>
+<rect x="14" y="58" width="12" height="18" fill="#7c5cff"/>
+<g id="armR"><rect x="74" y="58" width="12" height="18" fill="#7c5cff"/></g>
+<rect x="22" y="14" width="56" height="44" fill="#9d85ff"/>
+<rect x="28" y="22" width="44" height="28" fill="#1b1430"/>
+<g id="eyes"><rect x="36" y="32" width="8" height="10" fill="#7df9ff"/><rect x="56" y="32" width="8" height="10" fill="#7df9ff"/></g>
+<rect x="46" y="4" width="8" height="10" fill="#9d85ff"/><rect x="44" y="0" width="12" height="6" fill="#7df9ff"/>
+</g></svg></div>
+<script>
+window.setState=function(s,flip){document.getElementById('w').className=s;document.getElementById('n').classList.toggle('flip',!!flip)};
+</script></body></html>
