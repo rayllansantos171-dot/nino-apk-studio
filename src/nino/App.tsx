@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import "./index.css";
 import { SettingsProvider, useSettings } from "./utils/SettingsContext";
 import Home, { Splash } from "./pages/Home";
@@ -22,6 +22,29 @@ function Shell() {
     }
   });
   const [lastTab, setLastTab] = useState<Exclude<View, "splash" | "chat" | "loja">>("agente");
+
+  // Botão "voltar" do Android: cada tela entra no histórico do WebView em vez de fechar o app.
+  const prevView = useRef<View | null>(null);
+  useEffect(() => {
+    const prev = prevView.current;
+    prevView.current = view;
+    try {
+      if (prev === null || prev === "splash") window.history.replaceState({ ...window.history.state, nino: view }, "");
+      else if (window.history.state?.nino !== view) window.history.pushState({ ...window.history.state, nino: view }, "");
+    } catch {
+      /* ignore */
+    }
+  }, [view]);
+  useEffect(() => {
+    const onPop = (e: PopStateEvent) => {
+      const v = e.state?.nino as View | undefined;
+      if (!v || v === "splash") return;
+      if (v !== "chat" && v !== "loja") setLastTab(v);
+      setView(v);
+    };
+    window.addEventListener("popstate", onPop);
+    return () => window.removeEventListener("popstate", onPop);
+  }, []);
 
   const goTab = (v: Exclude<View, "splash" | "chat" | "loja">) => {
     setLastTab(v);

@@ -1,6 +1,8 @@
 package app.lovable.ninoai;
 
+import android.Manifest;
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.os.Build;
 import android.provider.Settings;
@@ -39,6 +41,12 @@ public class NinoOverlayPlugin extends Plugin {
     @PluginMethod
     public void start(PluginCall call) {
         if (!canDraw()) { call.reject("Permissão de sobreposição negada"); return; }
+        // Android 13+: pede permissão para mostrar a notificação do Nino (o serviço funciona mesmo se negar).
+        if (Build.VERSION.SDK_INT >= 33
+                && getContext().checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
+                && getActivity() != null) {
+            getActivity().requestPermissions(new String[] {Manifest.permission.POST_NOTIFICATIONS}, 4210);
+        }
         Intent i = new Intent(getContext(), FloatingNinoService.class);
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) getContext().startForegroundService(i);
         else getContext().startService(i);

@@ -4,6 +4,7 @@ const config: CapacitorConfig = {
   appId: "app.lovable.ninoai",
   appName: "Nino AI",
   webDir: "public",
+  backgroundColor: "#07040f",
   server: {
     url: "https://nino-apk-studio.lovable.app",
     cleartext: false,

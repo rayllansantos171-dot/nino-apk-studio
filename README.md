@@ -24,3 +24,21 @@ cd <repository-name>
 npm i
 npm run dev
 ```
+
+## App Android (APK)
+
+O app Android usa Capacitor (`android/`) e abre o site publicado (`server.url` em `capacitor.config.ts`).
+Sem internet, abre o Nino offline (`public/offline.html`). Para publicar mudanças do site no app, clique em **Publish** na Lovable.
+
+**Gerar o APK sem computador:** no GitHub, abra a aba **Actions** → **Gerar APK do Nino** → **Run workflow**.
+Ao terminar, baixe o arquivo `nino-ai-apk` (contém `app-debug.apk`) no fim da página da execução e instale no celular.
+
+**No computador:**
+
+```sh
+npm install
+npx cap sync android
+cd android && ./gradlew assembleDebug
+```
+
+Para publicar na Play Store, gere um APK/AAB **assinado** (`./gradlew bundleRelease` com sua keystore).
