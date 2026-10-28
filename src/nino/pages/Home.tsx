@@ -3,6 +3,7 @@ import Nino from "../components/Nino";
 import { Toggle } from "../components/Settings";
 import { IconChat, IconChevron, IconCube, IconMove, IconRocket, IconSettings, IconShield } from "../components/Icons";
 import { useSettings } from "../utils/SettingsContext";
+import { setNativeOverlay } from "../utils/nativeOverlay";
 
 /** Tela inicial de boas-vindas. */
 export function Splash({ onStart }: { onStart: () => void }) {
@@ -89,7 +90,11 @@ export default function Home({
         <button
           className={`primary-btn wide ${settings.onScreen ? "active" : ""}`}
           disabled={!settings.floating}
-          onClick={() => update({ onScreen: !settings.onScreen })}
+          onClick={() => {
+            const next = !settings.onScreen;
+            update({ onScreen: next });
+            void setNativeOverlay(next);
+          }}
         >
           <IconRocket size={20} /> {settings.onScreen ? "DESATIVAR DA TELA" : "ATIVAR NA TELA"}
         </button>

@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Nino AI</string>
+    <string name="title_activity_main">Nino AI</string>
+    <string name="package_name">app.lovable.ninoai</string>
+    <string name="custom_url_scheme">app.lovable.ninoai</string>
+</resources>

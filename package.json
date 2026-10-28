@@ -18,6 +18,8 @@
   },
   "dependencies": {
     "@ai-sdk/openai": "^4.0.103",
+    "@capacitor/android": "^8.5.3",
+    "@capacitor/core": "^8.5.3",
     "@hookform/resolvers": "^5.2.2",
     "@radix-ui/react-accordion": "^1.2.12",
     "@radix-ui/react-alert-dialog": "^1.1.15",
@@ -73,6 +75,7 @@
     "zod": "^3.25.76"
   },
   "devDependencies": {
+    "@capacitor/cli": "^8.5.3",
     "@eslint/js": "^9.32.0",
     "@lovable.dev/vite-tanstack-config": "2.26.5",
     "@testing-library/jest-dom": "^6.6.0",

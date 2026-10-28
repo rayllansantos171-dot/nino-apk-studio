@@ -8,3 +8,5 @@
 > Commits you push to the connected branch sync back to Lovable and show up in
 > the editor, so keep the branch in a working state.
 <!-- LOVABLE:END -->
+
+- Android app lives in `android/` (Capacitor); it loads the published site via `server.url` in capacitor.config.ts, and native overlay code is the `NinoOverlay` plugin (Java) called from `src/nino/utils/nativeOverlay.ts` — keeps web behavior unchanged and avoids bundling the SSR app.
