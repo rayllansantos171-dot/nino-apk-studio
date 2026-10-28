@@ -49,8 +49,6 @@ function Shell() {
         {view === "chat" && <ChatPage onBack={() => setView(lastTab)} />}
       </main>
 
-      <div id="hud-slot" />
-
       {showNav && (
         <nav className="bottom-nav">
           <button className={view === "agente" ? "active" : ""} onClick={() => goTab("agente")}>
@@ -68,7 +66,7 @@ function Shell() {
         </nav>
       )}
 
-      {showFloating && view !== "chat" && <FloatingAgent onOpenChat={() => setView("chat")} />}
+      {showFloating && view !== "chat" && <FloatingAgent />}
     </div>
   );
 }
