@@ -4,10 +4,11 @@ import { SettingsProvider, useSettings } from "./utils/SettingsContext";
 import Home, { Splash } from "./pages/Home";
 import ChatPage from "./pages/ChatPage";
 import SettingsPage from "./pages/SettingsPage";
+import SkinShopPage from "./pages/SkinShopPage";
 import FloatingAgent from "./components/FloatingAgent";
 import { IconAgent, IconPalette, IconSettings } from "./components/Icons";
 
-type View = "splash" | "agente" | "aparencia" | "ajustes" | "chat";
+type View = "splash" | "agente" | "aparencia" | "ajustes" | "chat" | "loja";
 
 const STARTED_KEY = "nino-ai-started";
 
@@ -20,9 +21,9 @@ function Shell() {
       return "splash";
     }
   });
-  const [lastTab, setLastTab] = useState<Exclude<View, "splash" | "chat">>("agente");
+  const [lastTab, setLastTab] = useState<Exclude<View, "splash" | "chat" | "loja">>("agente");
 
-  const goTab = (v: Exclude<View, "splash" | "chat">) => {
+  const goTab = (v: Exclude<View, "splash" | "chat" | "loja">) => {
     setLastTab(v);
     setView(v);
   };
@@ -44,7 +45,8 @@ function Shell() {
       <main className="screen">
         {view === "splash" && <Splash onStart={start} />}
         {view === "agente" && <Home onOpenChat={() => setView("chat")} onOpenSettings={() => goTab("ajustes")} />}
-        {view === "aparencia" && <SettingsPage mode="aparencia" />}
+        {view === "aparencia" && <SettingsPage mode="aparencia" onOpenShop={() => setView("loja")} />}
+        {view === "loja" && <SkinShopPage onBack={() => goTab("aparencia")} />}
         {view === "ajustes" && <SettingsPage mode="ajustes" />}
         {view === "chat" && <ChatPage onBack={() => setView(lastTab)} />}
       </main>
@@ -55,7 +57,7 @@ function Shell() {
             <IconAgent />
             <span>Agente</span>
           </button>
-          <button className={view === "aparencia" ? "active" : ""} onClick={() => goTab("aparencia")}>
+          <button className={view === "aparencia" || view === "loja" ? "active" : ""} onClick={() => goTab("aparencia")}>
             <IconPalette />
             <span>Aparência</span>
           </button>

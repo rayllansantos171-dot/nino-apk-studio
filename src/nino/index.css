@@ -282,3 +282,41 @@ h1, h2, h3, p { margin: 0; }
   background: var(--card-2); border: 1px solid var(--line-strong); font-size: 13.5px; line-height: 1.4;
   box-shadow: 0 8px 30px rgba(0,0,0,.5); animation: pop .2s ease-out;
 }
+
+/* ===== Loja de skins ===== */
+.shop-header { display: flex; align-items: center; gap: 12px; }
+.shop-title { flex: 1; min-width: 0; }
+.icon-btn {
+  flex: none; width: 42px; height: 42px; display: grid; place-items: center; border-radius: 12px;
+  border: 1px solid var(--line); background: var(--card); color: var(--accent-soft);
+}
+.icon-btn.static { pointer-events: none; }
+.shop-banner {
+  display: flex; align-items: center; gap: 12px; padding: 14px; border-radius: var(--radius);
+  border: 1px solid var(--line); background: var(--card);
+}
+.shop-banner-ic { color: #7aa7ff; display: grid; place-items: center; }
+.shop-banner h3 { font-size: 17px; font-weight: 700; }
+.shop-banner p { color: var(--muted); font-size: 13px; margin-top: 2px; }
+.skin-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 14px; }
+.skin-card {
+  display: flex; flex-direction: column; align-items: flex-start; gap: 8px; padding: 12px; text-align: left;
+  border-radius: var(--radius); border: 1px solid var(--line); background: var(--card); color: var(--text);
+}
+.skin-card.active { border-color: var(--tint); box-shadow: 0 0 18px color-mix(in srgb, var(--tint) 45%, transparent); }
+.skin-preview {
+  width: 100%; aspect-ratio: 1 / 1.15; display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 14px; border-radius: 14px; background: var(--preview); color: var(--tint);
+}
+.skin-preview .skin-lock { color: #facc6b; }
+.skin-card strong { font-size: 16px; line-height: 1.25; }
+.skin-badge {
+  padding: 4px 10px; border-radius: 8px; font-size: 12.5px; font-weight: 600; color: #fb8a3c;
+  background: color-mix(in srgb, #fb8a3c 16%, transparent);
+}
+.skin-card small { color: var(--muted); font-size: 13px; }
+.skin-details { margin-top: 14px; padding: 14px; border-radius: var(--radius); border: 1px solid var(--line-strong); background: var(--card); }
+.skin-details-head { display: flex; align-items: center; gap: 12px; color: #facc6b; margin-bottom: 12px; }
+.skin-details-head h3 { color: var(--text); font-size: 17px; font-weight: 700; }
+.skin-details-head p { color: var(--muted); font-size: 13.5px; margin-top: 2px; }
+.shop-note { margin: 16px 8px; text-align: center; color: var(--muted); font-size: 12.5px; line-height: 1.4; }
