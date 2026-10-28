@@ -54,9 +54,6 @@ export default function Home({
           </h1>
           <p className="subtitle">Seu Agente de IA</p>
         </div>
-        <button className="icon-btn" aria-label="Ajustes" onClick={onOpenSettings}>
-          <IconSettings size={22} />
-        </button>
       </header>
 
       <section className="hero">
