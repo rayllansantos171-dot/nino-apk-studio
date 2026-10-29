@@ -7,8 +7,8 @@ export default function ChatPage({
   onVoiceHandled,
 }: {
   onBack: () => void;
-  voiceText?: string | null | undefined;
-  onVoiceHandled?: (() => void) | undefined;
+  voiceText?: string | null;
+  onVoiceHandled?: () => void;
 }) {
   return <Chat onBack={onBack} voiceText={voiceText} onVoiceHandled={onVoiceHandled} />;
 }
