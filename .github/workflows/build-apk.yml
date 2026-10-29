@@ -12,6 +12,9 @@ on:
       - "package.json"
       - ".github/workflows/build-apk.yml"
 
+permissions:
+  contents: write
+
 jobs:
   apk:
     runs-on: ubuntu-latest
@@ -53,3 +56,11 @@ jobs:
         with:
           name: nino-ai-apk
           path: android/app/build/outputs/apk/debug/app-debug.apk
+
+      - name: Publicar APK para baixar no celular (Releases)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cp android/app/build/outputs/apk/debug/app-debug.apk Nino-AI.apk
+          gh release delete apk-latest --yes --cleanup-tag || true
+          gh release create apk-latest Nino-AI.apk --target "$GITHUB_SHA" --title "Nino AI (APK mais recente)" --notes "APK de teste gerado automaticamente a partir do commit ${GITHUB_SHA::7}. Baixe o arquivo Nino-AI.apk e instale no Android."
