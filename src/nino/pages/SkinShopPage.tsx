@@ -9,14 +9,14 @@ interface Skin {
   Icon: (p: { size?: number; className?: string }) => React.ReactElement;
 }
 
-/** Skins da loja. Por enquanto são apenas uma prévia: todas permanecem bloqueadas. */
+/** Skins da loja. As cores acompanham a cor do personagem (tema escolhido). Por enquanto são apenas uma prévia: todas permanecem bloqueadas. */
 const SKINS: Skin[] = [
-  { id: "heroi-cosmico", name: "Herói Cósmico", tint: "#4f8dfd", preview: "#15152e", Icon: IconShield },
-  { id: "armadura-de-energia", name: "Armadura de Energia", tint: "#f472b6", preview: "#25142e", Icon: IconBolt },
+  { id: "heroi-cosmico", name: "Herói Cósmico", tint: "var(--accent)", preview: "color-mix(in srgb, var(--accent) 14%, #0b0b16)", Icon: IconShield },
+  { id: "armadura-de-energia", name: "Armadura de Energia", tint: "var(--accent-soft)", preview: "color-mix(in srgb, var(--accent) 8%, #120c1c)", Icon: IconBolt },
 ];
 
 export default function SkinShopPage({ onBack }: { onBack: () => void }) {
-  const [openId, setOpenId] = useState<string | null>(SKINS[0].id);
+  const [openId, setOpenId] = useState<string | null>(SKINS[0]?.id ?? null);
   const open = SKINS.find((s) => s.id === openId) ?? null;
 
   return (
