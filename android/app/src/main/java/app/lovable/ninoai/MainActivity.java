@@ -17,6 +17,7 @@ public class MainActivity extends BridgeActivity {
     public void onCreate(Bundle savedInstanceState) {
         registerPlugin(NinoOverlayPlugin.class);
         registerPlugin(NinoListenPlugin.class);
+        registerPlugin(NinoPermissionsPlugin.class);
         super.onCreate(savedInstanceState);
         setupInsets();
     }

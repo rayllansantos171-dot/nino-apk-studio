@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import ThemeSelector from "./ThemeSelector";
+import PermissionsList from "./Permissions";
 import {
   IconBell,
   IconBolt,
@@ -10,7 +11,6 @@ import {
   IconInfo,
   IconNormal,
   IconRefresh,
-  IconShield,
   IconSize,
   IconSlow,
   IconSparkle,
@@ -165,22 +165,6 @@ export function SettingsList() {
           <IconChevron size={18} className="chev" />
         </button>
 
-        <button
-          className="list-row"
-          onClick={() =>
-            show("No app Android, ative 'Sobreposição de tela' nas configurações do sistema para o Nino aparecer sobre outros apps.")
-          }
-        >
-          <span className="row-ic">
-            <IconShield size={20} />
-          </span>
-          <span className="row-text">
-            <strong>Permissões</strong>
-            <small>Sobreposição de tela</small>
-          </span>
-          <IconChevron size={18} className="chev" />
-        </button>
-
         <div className="list-row">
           <span className="row-ic">
             <IconVolume size={20} />
@@ -218,6 +202,8 @@ export function SettingsList() {
           <IconChevron size={18} className="chev" />
         </button>
       </div>
+
+      <PermissionsList />
 
       <button
         className="outline-btn"
