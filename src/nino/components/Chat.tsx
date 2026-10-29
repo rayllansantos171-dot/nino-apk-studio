@@ -13,7 +13,7 @@ interface Msg {
   from: "nino" | "user";
   text: string;
   time: string;
-  image?: string;
+  image?: string | undefined;
 }
 
 const now = () => new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
@@ -43,8 +43,8 @@ export default function Chat({
   onVoiceHandled,
 }: {
   onBack: () => void;
-  voiceText?: string | null;
-  onVoiceHandled?: () => void;
+  voiceText?: string | null | undefined;
+  onVoiceHandled?: (() => void) | undefined;
 }) {
   const { settings } = useSettings();
   const [messages, setMessages] = useState<Msg[]>([

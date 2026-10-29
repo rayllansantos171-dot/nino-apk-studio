@@ -16,7 +16,7 @@ const SKINS: Skin[] = [
 ];
 
 export default function SkinShopPage({ onBack }: { onBack: () => void }) {
-  const [openId, setOpenId] = useState<string | null>(SKINS[0].id);
+  const [openId, setOpenId] = useState<string | null>(SKINS[0]?.id ?? null);
   const open = SKINS.find((s) => s.id === openId) ?? null;
 
   return (
