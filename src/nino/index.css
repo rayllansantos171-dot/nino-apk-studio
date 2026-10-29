@@ -295,7 +295,7 @@ h1, h2, h3, p { margin: 0; }
   display: flex; align-items: center; gap: 12px; padding: 14px; border-radius: var(--radius);
   border: 1px solid var(--line); background: var(--card);
 }
-.shop-banner-ic { color: #7aa7ff; display: grid; place-items: center; }
+.shop-banner-ic { color: var(--accent); display: grid; place-items: center; }
 .shop-banner h3 { font-size: 17px; font-weight: 700; }
 .shop-banner p { color: var(--muted); font-size: 13px; margin-top: 2px; }
 .skin-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 14px; }
@@ -321,8 +321,8 @@ h1, h2, h3, p { margin: 0; }
 .skin-details-head p { color: var(--muted); font-size: 13.5px; margin-top: 2px; }
 .shop-note { margin: 16px 8px; text-align: center; color: var(--muted); font-size: 12.5px; line-height: 1.4; }
 .icon-btn.store {
-  width: 52px; height: 52px; border-radius: 16px; border: 1.5px solid #4f8dfd; color: #7aa7ff;
-  background: #0d0e22; box-shadow: 0 0 14px color-mix(in srgb, #4f8dfd 28%, transparent);
+  width: 52px; height: 52px; border-radius: 16px; border: 1.5px solid var(--accent); color: var(--accent-soft);
+  background: color-mix(in srgb, var(--accent) 12%, var(--card)); box-shadow: 0 0 14px color-mix(in srgb, var(--accent) 28%, transparent);
 }
 
 /* ===== Fotos no chat ===== */
