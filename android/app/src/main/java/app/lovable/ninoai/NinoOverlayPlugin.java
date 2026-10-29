@@ -47,9 +47,16 @@ public class NinoOverlayPlugin extends Plugin {
                 && getActivity() != null) {
             getActivity().requestPermissions(new String[] {Manifest.permission.POST_NOTIFICATIONS}, 4210);
         }
+        FloatingNinoService.setSkin(call.getString("skin", "padrao"));
         Intent i = new Intent(getContext(), FloatingNinoService.class);
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) getContext().startForegroundService(i);
         else getContext().startService(i);
+        call.resolve();
+    }
+
+    @PluginMethod
+    public void setSkin(PluginCall call) {
+        FloatingNinoService.setSkin(call.getString("skin", "padrao"));
         call.resolve();
     }
 

@@ -4,6 +4,13 @@
 html,body{margin:0;background:transparent;overflow:hidden}
 #n{width:96px;height:96px;transform-origin:50% 100%}
 #n.flip{transform:scaleX(-1)}
+#n{overflow:visible}
+#wings,#halo{display:none}
+body.anjo #wings,body.anjo #halo{display:inline}
+body.anjo #ant{display:none}
+body.anjo .wing{transform-box:fill-box;transform-origin:100% 40%;animation:wingFlap 1.2s ease-in-out infinite}
+.walk .wing,.jump .wing,.backflip .wing{animation-duration:.4s}
+@keyframes wingFlap{0%,100%{transform:rotate(0)}50%{transform:rotate(-12deg)}}
 .walk #legL{animation:legA .4s infinite alternate}
 .walk #legR{animation:legB .4s infinite alternate}
 .walk #body{animation:bob .2s infinite alternate}
@@ -31,6 +38,10 @@ html,body{margin:0;background:transparent;overflow:hidden}
 #eyes{transform-origin:50px 42px}
 </style></head>
 <body><div id="w" class="idle"><svg id="n" viewBox="0 0 100 100">
+<g id="wings">
+<g><g class="wing"><rect x="8" y="46" width="12" height="8" fill="#f6f3ff"/><rect x="2" y="52" width="18" height="8" fill="#f6f3ff"/><rect x="0" y="58" width="20" height="8" fill="#e4ddfa"/><rect x="2" y="64" width="16" height="7" fill="#d6cdf3"/></g></g>
+<g transform="translate(100 0) scale(-1 1)"><g class="wing"><rect x="8" y="46" width="12" height="8" fill="#f6f3ff"/><rect x="2" y="52" width="18" height="8" fill="#f6f3ff"/><rect x="0" y="58" width="20" height="8" fill="#e4ddfa"/><rect x="2" y="64" width="16" height="7" fill="#d6cdf3"/></g></g>
+</g>
 <g id="legL"><rect x="34" y="78" width="12" height="16" fill="#5b3fd6"/></g>
 <g id="legR"><rect x="54" y="78" width="12" height="16" fill="#5b3fd6"/></g>
 <g id="body">
@@ -40,8 +51,11 @@ html,body{margin:0;background:transparent;overflow:hidden}
 <rect x="22" y="14" width="56" height="44" fill="#9d85ff"/>
 <rect x="28" y="22" width="44" height="28" fill="#1b1430"/>
 <g id="eyes"><rect x="36" y="32" width="8" height="10" fill="#7df9ff"/><rect x="56" y="32" width="8" height="10" fill="#7df9ff"/></g>
-<rect x="46" y="4" width="8" height="10" fill="#9d85ff"/><rect x="44" y="0" width="12" height="6" fill="#7df9ff"/>
+<g id="ant"><rect x="46" y="4" width="8" height="10" fill="#9d85ff"/><rect x="44" y="0" width="12" height="6" fill="#7df9ff"/></g>
+<g id="halo"><rect x="32" y="0" width="36" height="3" fill="#ffe27a"/><rect x="32" y="6" width="36" height="2" fill="#f2b632"/><rect x="28" y="2" width="4" height="5" fill="#ffd24d"/><rect x="68" y="2" width="4" height="5" fill="#ffd24d"/></g>
 </g></svg></div>
 <script>
+window.setSkin=function(k){document.body.classList.toggle('anjo',k==='anjo')};
+setSkin((location.hash||'').slice(1));
 window.setState=function(s,flip){document.getElementById('w').className=s;document.getElementById('n').classList.toggle('flip',!!flip)};
 </script></body></html>

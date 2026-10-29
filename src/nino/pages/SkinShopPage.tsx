@@ -1,7 +1,11 @@
 import React, { useState } from "react";
+import Nino from "../components/Nino";
 import { IconBack, IconBolt, IconLock, IconShield, IconSparkle, IconStore } from "../components/Icons";
+import { useSettings } from "../utils/SettingsContext";
+import { setNativeOverlaySkin } from "../utils/nativeOverlay";
+import type { SkinKey } from "../utils/settings";
 
-interface Skin {
+interface LockedSkin {
   id: string;
   name: string;
   tint: string;
@@ -9,15 +13,24 @@ interface Skin {
   Icon: (p: { size?: number; className?: string }) => React.ReactElement;
 }
 
-/** Skins da loja. As cores acompanham a cor do personagem (tema escolhido). Por enquanto são apenas uma prévia: todas permanecem bloqueadas. */
-const SKINS: Skin[] = [
+/** Skins ainda bloqueadas (prévia). As cores acompanham a cor do personagem (tema escolhido). */
+const LOCKED: LockedSkin[] = [
   { id: "heroi-cosmico", name: "Herói Cósmico", tint: "var(--accent)", preview: "color-mix(in srgb, var(--accent) 14%, #0b0b16)", Icon: IconShield },
   { id: "armadura-de-energia", name: "Armadura de Energia", tint: "var(--accent-soft)", preview: "color-mix(in srgb, var(--accent) 8%, #120c1c)", Icon: IconBolt },
 ];
 
+const ANGEL_ID = "anjo";
+
 export default function SkinShopPage({ onBack }: { onBack: () => void }) {
-  const [openId, setOpenId] = useState<string | null>(SKINS[0]?.id ?? null);
-  const open = SKINS.find((s) => s.id === openId) ?? null;
+  const { settings, update } = useSettings();
+  const [openId, setOpenId] = useState<string | null>(ANGEL_ID);
+  const lockedOpen = LOCKED.find((s) => s.id === openId) ?? null;
+  const angelEquipped = settings.skin === "anjo";
+
+  const equip = (skin: SkinKey) => {
+    update({ skin });
+    void setNativeOverlaySkin(skin);
+  };
 
   return (
     <div className="page">
@@ -37,16 +50,35 @@ export default function SkinShopPage({ onBack }: { onBack: () => void }) {
       <div className="panel-scroll">
         <div className="shop-banner">
           <span className="shop-banner-ic">
-            <IconLock size={22} />
+            <IconSparkle size={22} />
           </span>
           <div>
             <h3>Skins especiais</h3>
-            <p>Desbloqueie novos visuais para seu Nino.</p>
+            <p>Novos visuais para o seu Nino.</p>
           </div>
         </div>
 
         <div className="skin-grid">
-          {SKINS.map((s) => (
+          <button
+            className={`skin-card wide ${openId === ANGEL_ID ? "active" : ""}`}
+            style={{ "--tint": "#ffd24d", "--preview": "color-mix(in srgb, var(--accent) 12%, #0e0c1c)" } as React.CSSProperties}
+            onClick={() => setOpenId(ANGEL_ID)}
+            aria-pressed={openId === ANGEL_ID}
+            aria-label={`Anjo, ${angelEquipped ? "equipada" : "disponível"}. Toque para ver os detalhes`}
+          >
+            <div className="skin-preview">
+              <Nino skin="anjo" size={84} glow={false} particles={false} />
+            </div>
+            <div className="skin-info">
+              <strong>Anjo</strong>
+              <span className={`skin-badge ${angelEquipped ? "ok" : "free"}`}>
+                {angelEquipped ? "Equipada" : "Disponível"}
+              </span>
+              <small>Toque para ver</small>
+            </div>
+          </button>
+
+          {LOCKED.map((s) => (
             <button
               key={s.id}
               className={`skin-card ${openId === s.id ? "active" : ""}`}
@@ -69,12 +101,39 @@ export default function SkinShopPage({ onBack }: { onBack: () => void }) {
           ))}
         </div>
 
-        {open && (
-          <div className="skin-details" role="region" aria-label={`Detalhes de ${open.name}`}>
+        {openId === ANGEL_ID && (
+          <div className="skin-details" role="region" aria-label="Detalhes de Anjo">
+            <div className="skin-details-head angel">
+              <IconSparkle size={22} />
+              <div>
+                <h3>Anjo</h3>
+                <p>Auréola dourada e asas que batem enquanto o Nino anda.</p>
+              </div>
+            </div>
+            {angelEquipped ? (
+              <>
+                <p className="skin-state">Skin equipada. É assim que o Nino aparece agora.</p>
+                <button className="outline-btn" onClick={() => equip("padrao")}>
+                  Voltar ao visual padrão
+                </button>
+              </>
+            ) : (
+              <button className="primary-btn wide" onClick={() => equip("anjo")}>
+                Equipar skin Anjo
+              </button>
+            )}
+            <button className="outline-btn" onClick={() => setOpenId(null)}>
+              Fechar detalhes
+            </button>
+          </div>
+        )}
+
+        {lockedOpen && (
+          <div className="skin-details" role="region" aria-label={`Detalhes de ${lockedOpen.name}`}>
             <div className="skin-details-head">
               <IconLock size={22} />
               <div>
-                <h3>{open.name}</h3>
+                <h3>{lockedOpen.name}</h3>
                 <p>Esta skin está bloqueada.</p>
               </div>
             </div>
@@ -84,7 +143,7 @@ export default function SkinShopPage({ onBack }: { onBack: () => void }) {
           </div>
         )}
 
-        <p className="shop-note">Prévia demonstrativa • As skins permanecem bloqueadas</p>
+        <p className="shop-note">As skins bloqueadas chegam em breve</p>
 
         <button className="outline-btn" onClick={onBack}>
           Voltar para Aparência

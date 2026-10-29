@@ -1,9 +1,11 @@
 export type ThemeKey = "roxo" | "rosa" | "azul" | "verde";
 export type SizeKey = "small" | "medium" | "large";
 export type SpeedKey = "slow" | "normal" | "fast";
+export type SkinKey = "padrao" | "anjo";
 
 export interface Settings {
   theme: ThemeKey;
+  skin: SkinKey; // visual do Nino (só muda pela loja de skins)
   size: SizeKey;
   speed: SpeedKey;
   glow: boolean;
@@ -21,6 +23,7 @@ export interface Settings {
 
 export const DEFAULT_SETTINGS: Settings = {
   theme: "roxo",
+  skin: "padrao",
   size: "medium",
   speed: "normal",
   glow: true,

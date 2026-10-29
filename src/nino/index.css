@@ -334,3 +334,15 @@ h1, h2, h3, p { margin: 0; }
 
 /* balão cresce para cima, assim textos longos não cobrem o Nino */
 .floating-agent .speech { top: auto; bottom: calc(100% - 10px); max-width: 220px; font-size: 13px; }
+
+/* ===== Skin Anjo na loja ===== */
+.skin-card.wide { grid-column: 1 / -1; flex-direction: row; align-items: center; gap: 14px; }
+.skin-card.wide .skin-preview { width: 112px; flex: none; aspect-ratio: 1 / 1.1; }
+.skin-info { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; min-width: 0; }
+.skin-info strong { font-size: 18px; }
+.skin-badge.ok { color: var(--ok); background: color-mix(in srgb, var(--ok) 16%, transparent); }
+.skin-badge.free { color: #ffd24d; background: color-mix(in srgb, #ffd24d 16%, transparent); }
+.skin-details-head.angel { color: #ffd24d; }
+.skin-state { color: var(--muted); font-size: 13.5px; line-height: 1.4; margin: 0 0 4px; }
+.skin-details .primary-btn.wide { margin: 0 0 4px; }
+.skin-details .outline-btn { margin-top: 10px; }

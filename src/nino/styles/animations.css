@@ -254,3 +254,15 @@
 .nino-still .nino-particles,
 .nino-still .note,
 .nino-still .dizzy-stars { display: none; }
+
+/* skin Anjo: asas batem devagar, brilho suave na auréola; parado (nino-still) tudo fica fixo */
+.nino-wing { animation: wingFlap 1.6s ease-in-out infinite; }
+.nino-wing-l { transform-origin: 100% 12%; }
+.nino-wing-r { transform-origin: 0% 12%; animation-name: wingFlapR; }
+.nino-jump .nino-wing, .nino-fall .nino-wing, .nino-backflip .nino-wing, .nino-hang .nino-wing { animation-duration: .35s; }
+.nino-run .nino-wing { animation-duration: .6s; }
+.nino-sleep .nino-wing, .nino-ko .nino-wing { animation: none; }
+.nino-halo { animation: haloGlow 2.2s ease-in-out infinite; filter: drop-shadow(0 0 4px #ffd24d); }
+@keyframes wingFlap { 0%,100% { transform: rotate(0); } 50% { transform: rotate(-11deg); } }
+@keyframes wingFlapR { 0%,100% { transform: rotate(0); } 50% { transform: rotate(11deg); } }
+@keyframes haloGlow { 0%,100% { opacity: .85; } 50% { opacity: 1; } }

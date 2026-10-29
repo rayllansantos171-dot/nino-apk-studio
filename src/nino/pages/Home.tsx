@@ -109,7 +109,7 @@ export default function Home({
           onClick={() => {
             const next = !settings.onScreen;
             update({ floating: next, onScreen: next });
-            void setNativeOverlay(next);
+            void setNativeOverlay(next, settings.skin);
           }}
         >
           <IconRocket size={20} /> {settings.onScreen ? "DESATIVAR DA TELA" : "ATIVAR NA TELA"}

@@ -40,6 +40,21 @@ public class FloatingNinoService extends Service {
     private float vy = 0;
     private int sizePx;
     private static volatile FloatingNinoService instance;
+    private static volatile String skin = "padrao";
+
+    /** Skin do Nino na tela ("padrao" ou "anjo"). Vale na hora se ele já está na tela. */
+    static void setSkin(String value) {
+        String clean = value == null ? "padrao" : value.replaceAll("[^a-z]", "");
+        skin = clean.isEmpty() ? "padrao" : clean;
+        final FloatingNinoService s = instance;
+        if (s != null && s.web != null) {
+            s.h.post(new Runnable() {
+                @Override public void run() {
+                    if (s.web != null) s.web.evaluateJavascript("window.setSkin&&setSkin('" + skin + "')", null);
+                }
+            });
+        }
+    }
 
     /** Faz o Nino sobre outros apps obedecer uma ordem de voz. Devolve false se ele não está na tela. */
     static boolean perform(final String cmd) {
@@ -84,7 +99,7 @@ public class FloatingNinoService extends Service {
         web = view.findViewById(R.id.nino_web);
         web.setBackgroundColor(Color.TRANSPARENT);
         web.getSettings().setJavaScriptEnabled(true);
-        web.loadUrl("file:///android_asset/public/nino-overlay.html");
+        web.loadUrl("file:///android_asset/public/nino-overlay.html#" + skin);
         sizePx = (int) (96 * getResources().getDisplayMetrics().density);
 
         int type = Build.VERSION.SDK_INT >= Build.VERSION_CODES.O

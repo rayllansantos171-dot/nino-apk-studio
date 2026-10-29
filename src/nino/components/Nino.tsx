@@ -1,5 +1,7 @@
 import React from "react";
 import type { Action, Expression } from "../utils/ninoEngine";
+import type { SkinKey } from "../utils/settings";
+import { useSettings } from "../utils/SettingsContext";
 
 export type { Action, Expression };
 
@@ -13,12 +15,25 @@ interface Props {
   flash?: boolean;
   /** Só o Nino ativado (flutuante) e a cena de defesa se mexem; os demais ficam parados. */
   animated?: boolean;
+  /** Visual do Nino. Sem este valor, usa a skin equipada na loja. */
+  skin?: SkinKey;
   /** Arma de brincadeira usada na cena em que ele defende o criador. */
   weapon?: "club" | "pistol" | null;
   className?: string;
   style?: React.CSSProperties;
   onClick?: () => void;
 }
+
+/** Retângulos da asa esquerda: x, y, largura, altura, cor. */
+const WING_RECTS: ReadonlyArray<readonly [number, number, number, number, string]> = [
+  [14, 62, 14, 10, "#f6f3ff"],
+  [4, 70, 24, 10, "#f6f3ff"],
+  [-6, 78, 34, 10, "#efeaff"],
+  [-12, 86, 40, 9, "#e4ddfa"],
+  [-8, 93, 34, 8, "#d6cdf3"],
+  [2, 99, 24, 7, "#c8bdec"],
+  [14, 62, 14, 3, "#ffffff"],
+];
 
 /** Mascote Nino em estilo voxel (blocos), desenhado em SVG. As cores seguem o tema (--accent). */
 export default function Nino({
@@ -30,11 +45,16 @@ export default function Nino({
   particles = true,
   flash = false,
   animated = false,
+  skin,
   weapon = null,
   className = "",
   style,
   onClick,
 }: Props) {
+  const { settings } = useSettings();
+  const activeSkin: SkinKey = skin ?? settings.skin;
+  const angel = activeSkin === "anjo";
+
   const eyes = (() => {
     switch (expression) {
       case "happy":
@@ -121,7 +141,7 @@ export default function Nino({
 
   return (
     <div
-      className={`nino nino-${action} ${glow ? "nino-glow" : ""} ${flash ? "nino-flash" : ""} ${weapon ? "nino-armed" : ""} ${animated ? "" : "nino-still"} ${className}`}
+      className={`nino nino-${action} ${glow ? "nino-glow" : ""} ${flash ? "nino-flash" : ""} ${weapon ? "nino-armed" : ""} ${animated ? "" : "nino-still"} ${angel ? "nino-skin-anjo" : ""} ${className}`}
       style={{ width: size, height: size * (170 / 120), ...style }}
       onClick={onClick}
       role={onClick ? "button" : undefined}
@@ -143,6 +163,22 @@ export default function Nino({
           )}
 
           <g className="nino-all">
+            {/* skin Anjo: asas atrás do corpo (a direita é desenhada espelhada, sem transform no SVG) */}
+            {angel && (
+              <g className="nino-wings">
+                <g className="nino-wing nino-wing-l">
+                  {WING_RECTS.map(([x, y, w, h, fill], i) => (
+                    <rect key={i} x={x} y={y} width={w} height={h} fill={fill} />
+                  ))}
+                </g>
+                <g className="nino-wing nino-wing-r">
+                  {WING_RECTS.map(([x, y, w, h, fill], i) => (
+                    <rect key={i} x={120 - x - w} y={y} width={w} height={h} fill={fill} />
+                  ))}
+                </g>
+              </g>
+            )}
+
             {/* pernas */}
             <g className="nino-leg nino-leg-l">
               <rect x="40" y="122" width="18" height="30" fill="#2a1f40" />
@@ -257,6 +293,16 @@ export default function Nino({
                 strokeWidth="2"
               />
               {eyes}
+              {/* skin Anjo: auréola dourada */}
+              {angel && (
+                <g className="nino-halo">
+                  <rect x="42" y="-9" width="36" height="3" fill="#ffe27a" />
+                  <rect x="42" y="-9" width="36" height="1" fill="#fff6c8" />
+                  <rect x="42" y="-2" width="36" height="3" fill="#f2b632" />
+                  <rect x="37" y="-6" width="5" height="5" fill="#ffd24d" />
+                  <rect x="78" y="-6" width="5" height="5" fill="#ffd24d" />
+                </g>
+              )}
               {expression === "surprise" && (
                 <g fill="var(--accent-soft)" className="nino-excl">
                   <rect x="98" y="-6" width="5" height="14" />
