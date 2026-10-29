@@ -30,16 +30,20 @@ import java.util.regex.Pattern;
 public class ListeningService extends Service {
     static volatile boolean running = false;
 
+    private static final String WAKE_ONLY = "\u0000wake";
     private static final String ACTION_STOP = "app.lovable.ninoai.STOP_LISTENING";
     private static final String CH_LISTEN = "nino_listen";
     private static final String CH_HEARD = "nino_heard";
-    private static final Pattern WAKE = Pattern.compile("\\b(nino|ninho)\\b");
+    private static final Pattern WAKE = Pattern.compile("\\b(nino|ninho|ninu|nina|ninio|nineu|mino|lino|dino|ni no)\\b");
     private static final Pattern P_FLIP = Pattern.compile("\\b(cambalhota|salto mortal|mortal|pirueta|backflip|flip)\\b");
-    private static final Pattern P_JUMP = Pattern.compile("\\b(pul[aeo]r?|pulinho|pulo|salta[r]?|salte)\\b");
+    private static final Pattern P_JUMP = Pattern.compile("\\b(pul[aeo]r?|pulando|pulinho|pulo|salta[r]?|salte)\\b");
     private static final Pattern P_SPIN = Pattern.compile("\\b(gir[ae]r?|rodopi[ae]r?|rod[ae]r?|roda)\\b");
     private static final Pattern P_DANCE = Pattern.compile("\\b(danc[ae]r?|dancinha|bail[ae]r?|rebol[ae]r?)\\b");
     private static final Pattern P_WAVE = Pattern.compile("\\b(acen[ae]r?|tchau|ola|oi|eai|salve)\\b");
-    private static final Pattern P_WALK = Pattern.compile("\\b(and[ae]r?|caminh[ae]r?|passei[ae]r?|corr[ae]r?|volta)\\b");
+    private static final Pattern P_WALK = Pattern.compile("\\b(and[ae]r?|andando|caminh[ae]r?|passei[ae]r?|corr[ae]r?|volta|vai|va)\\b");
+    private static final Pattern P_RIGHT = Pattern.compile("\\b(direita|direito)\\b");
+    private static final Pattern P_LEFT = Pattern.compile("\\b(esquerda|esquerdo)\\b");
+    private static final Pattern P_RUN = Pattern.compile("\\b(corr[ae]r?|correndo)\\b");
     private static final Pattern P_STOP = Pattern.compile("\\b(pare|parar|quieto|parado|congela[r]?)\\b");
 
     private final Handler h = new Handler(Looper.getMainLooper());
@@ -47,6 +51,8 @@ public class ListeningService extends Service {
     private Intent recIntent;
     private boolean active = false;
     private int errors = 0;
+    /** Depois de só chamar "Nino", a próxima frase (até esse instante) vale como ordem, sem repetir o nome. */
+    private long awaitUntil = 0;
 
     @Override public IBinder onBind(Intent intent) { return null; }
 
@@ -115,11 +121,31 @@ public class ListeningService extends Service {
             errors = 0;
             ArrayList<String> list = results.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION);
             if (list != null) {
+                boolean following = System.currentTimeMillis() < awaitUntil;
+                boolean handled = false;
                 for (String candidate : list) {
                     String command = extractCommand(candidate);
                     if (command != null) {
-                        deliver(command);
+                        handled = true;
+                        if (WAKE_ONLY.equals(command)) {
+                            // Só chamou: Nino acena e espera a ordem na próxima frase.
+                            awaitUntil = System.currentTimeMillis() + 8000;
+                            if (!FloatingNinoService.perform("wave")) deliver("Oi, Nino!");
+                        } else {
+                            awaitUntil = 0;
+                            deliver(command);
+                        }
                         break;
+                    }
+                }
+                if (!handled && following && !list.isEmpty()) {
+                    // Frase seguinte ao chamado: se tem uma ordem conhecida, obedece.
+                    for (String candidate : list) {
+                        if (overlayCommand(candidate) != null || appHasOrder(candidate)) {
+                            awaitUntil = 0;
+                            deliver(candidate);
+                            break;
+                        }
                     }
                 }
             }
@@ -154,13 +180,19 @@ public class ListeningService extends Service {
         if (!m.find()) return null;
         int end = Math.min(m.end(), heard.length());
         String rest = heard.substring(end).replaceAll("^[\\s,.!?:;-]+", "").trim();
-        return rest.isEmpty() ? "Oi, Nino!" : rest;
+        return rest.isEmpty() ? WAKE_ONLY : rest;
     }
 
     /** Ordem simples para o Nino que está sobre outros apps (null se não for uma ordem). */
     static String overlayCommand(String command) {
         String n = Normalizer.normalize(command, Normalizer.Form.NFD).replaceAll("\\p{M}+", "")
                 .toLowerCase(Locale.ROOT).replaceAll("[^a-z0-9 ]+", " ");
+        boolean right = P_RIGHT.matcher(n).find();
+        boolean left = P_LEFT.matcher(n).find();
+        if (right || left) {
+            String side = right ? "right" : "left";
+            return (P_RUN.matcher(n).find() ? "run_" : "walk_") + side;
+        }
         if (P_FLIP.matcher(n).find()) return "backflip";
         if (P_JUMP.matcher(n).find()) return "jump";
         if (P_SPIN.matcher(n).find()) return "spin";
@@ -169,6 +201,12 @@ public class ListeningService extends Service {
         if (P_STOP.matcher(n).find()) return "stop";
         if (P_WALK.matcher(n).find()) return "walk";
         return null;
+    }
+
+    /** Há alguma ordem que o app (não o Nino da tela) entende? Mantém em sincronia com voiceCommands.ts. */
+    private static boolean appHasOrder(String text) {
+        String n = Normalizer.normalize(text, Normalizer.Form.NFD).replaceAll("\\p{M}+", "").toLowerCase(Locale.ROOT);
+        return n.matches(".*\\b(senta[r]?|sente|dorm[ei]r?|durma|palmas|aplaud[ei]r?|forca|musculos?|reverencia|ri|rir|risada|chora[r]?|bravo|raiva|te amo|beijo|pensa[r]?).*");
     }
 
     /** Abre o app com a frase. Sem permissão de sobreposição, mostra uma notificação para tocar. */

@@ -21,6 +21,8 @@ export const LINES: Record<string, string[]> = {
   cmdLove: ["Awn, te amo! 💜", "Que fofo! 💜", "Meu coração quadradinho! 💜"],
   cmdWalk: ["Dando uma voltinha!", "Tô indo!", "Passeando por aqui..."],
   cmdRun: ["Correndo! 🏃", "Zuuum!", "Nem me alcança!"],
+  cmdLeft: ["Indo pra esquerda! ⬅️", "Lá vou eu pra esquerda!", "Pra esquerda, entendido!"],
+  cmdRight: ["Indo pra direita! ➡️", "Lá vou eu pra direita!", "Pra direita, entendido!"],
   cmdStop: ["Parei! 🛑", "Tá bom, quietinho.", "Congelei!"],
   cmdThink: ["Hmm... deixa eu pensar 🤔", "Pensando...", "Interessante..."],
   cmdListen: ["Hmm... 🤔", "Deixa eu ver...", "Pensando aqui..."],

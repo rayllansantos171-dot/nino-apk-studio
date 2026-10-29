@@ -143,7 +143,7 @@ export default function Home({
               </span>
               <span className="row-text">
                 <strong>Escutar em segundo plano</strong>
-                <small>{settings.listening ? "Ouvindo: diga “Nino” e o que precisa" : "Desativado"}</small>
+                <small>{settings.listening ? "Ouvindo: “Nino pular”, “Nino anda pra direita”, “Nino dança”…" : "Desativado"}</small>
               </span>
               <IconChevron size={18} className="chev" />
             </button>

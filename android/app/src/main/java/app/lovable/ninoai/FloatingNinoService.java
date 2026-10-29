@@ -35,6 +35,7 @@ public class FloatingNinoService extends Service {
     private final Random rnd = new Random();
     private boolean dragging = false;
     private int dir = 1;
+    private int walkSpeed = 4;
     private String state = "idle";
     private int stateTicks = 0;
     private float vy = 0;
@@ -76,7 +77,11 @@ public class FloatingNinoService extends Service {
             case "dance": setState("dance"); stateTicks = 90; break;
             case "wave": setState("wave"); stateTicks = 60; break;
             case "spin": setState("spin"); stateTicks = 36; break;
-            case "walk": if (rnd.nextBoolean()) dir = -dir; setState("walk"); stateTicks = 240; break;
+            case "walk": if (rnd.nextBoolean()) dir = -dir; walkSpeed = 4; setState("walk"); stateTicks = 240; break;
+            case "walk_left": dir = -1; walkSpeed = 4; setState("walk"); stateTicks = 90; break;
+            case "walk_right": dir = 1; walkSpeed = 4; setState("walk"); stateTicks = 90; break;
+            case "run_left": dir = -1; walkSpeed = 9; setState("walk"); stateTicks = 70; break;
+            case "run_right": dir = 1; walkSpeed = 9; setState("walk"); stateTicks = 70; break;
             case "stop": setState("idle"); stateTicks = 200; break;
             default: break;
         }
@@ -164,13 +169,13 @@ public class FloatingNinoService extends Service {
                 } else {
                     if (--stateTicks <= 0) {
                         int r = rnd.nextInt(10);
-                        if (r < 6) { if (rnd.nextBoolean()) dir = -dir; setState("walk"); stateTicks = 60 + rnd.nextInt(120); }
+                        if (r < 6) { if (rnd.nextBoolean()) dir = -dir; walkSpeed = 4; setState("walk"); stateTicks = 60 + rnd.nextInt(120); }
                         else if (r < 8) { setState("idle"); stateTicks = 40 + rnd.nextInt(80); }
                         else if (r < 9) { setState("wave"); stateTicks = 40; }
                         else { setState("jump"); stateTicks = 15; }
                     }
                     if ("walk".equals(state)) {
-                        lp.x += dir * 4;
+                        lp.x += dir * walkSpeed;
                         if (lp.x < 0) { lp.x = 0; dir = 1; setState("walk"); }
                         if (lp.x > screenW() - sizePx) { lp.x = screenW() - sizePx; dir = -1; setState("walk"); }
                     }

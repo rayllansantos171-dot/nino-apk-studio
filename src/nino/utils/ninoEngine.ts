@@ -809,6 +809,7 @@ export function createNinoEngine(cfg: EngineConfig) {
     jump: "cmdJump", flip: "cmdFlip", dance: "cmdDance", wave: "cmdWave", sit: "cmdSit", sleep: "cmdSleep",
     spin: "cmdSpin", clap: "cmdClap", flex: "cmdFlex", bow: "cmdBow", laugh: "cmdLaugh", cry: "cmdCry",
     angry: "cmdAngry", love: "cmdLove", think: "cmdThink", walk: "cmdWalk", run: "cmdRun", stop: "cmdStop",
+    walkLeft: "cmdLeft", runLeft: "cmdLeft", walkRight: "cmdRight", runRight: "cmdRight",
   };
 
   /** Executa uma ordem dada por voz ("Nino, pula!"). Devolve false se ele não pode agora. */
@@ -852,6 +853,20 @@ export function createNinoEngine(cfg: EngineConfig) {
     if (name === "walk" || name === "run") {
       target = rand(a.left + 8, Math.max(a.left + 9, a.right - w - 8));
       if (name === "run") boostUntil = t + 5000;
+      say(line, 2000);
+      return true;
+    }
+    if (name === "walkLeft" || name === "walkRight" || name === "runLeft" || name === "runRight") {
+      const goLeft = name.endsWith("Left");
+      const dist = Math.max(140, (a.right - a.left) * (name.startsWith("run") ? 0.5 : 0.35));
+      const minX = a.left + 8;
+      const maxX = Math.max(minX + 1, a.right - w - 8);
+      let dest = clamp(x + (goLeft ? -dist : dist), minX, maxX);
+      // Já está na beirada daquele lado: ele vai até lá e fala, em vez de ficar parado.
+      if (Math.abs(dest - x) < 24) dest = goLeft ? minX : maxX;
+      target = dest;
+      flip = goLeft;
+      if (name.startsWith("run")) boostUntil = t + 5000;
       say(line, 2000);
       return true;
     }
