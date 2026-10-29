@@ -11,6 +11,8 @@ interface Props {
   glow?: boolean;
   particles?: boolean;
   flash?: boolean;
+  /** Só o Nino ativado (flutuante) e a cena de defesa se mexem; os demais ficam parados. */
+  animated?: boolean;
   /** Arma de brincadeira usada na cena em que ele defende o criador. */
   weapon?: "club" | "pistol" | null;
   className?: string;
@@ -27,6 +29,7 @@ export default function Nino({
   glow = true,
   particles = true,
   flash = false,
+  animated = false,
   weapon = null,
   className = "",
   style,
@@ -118,7 +121,7 @@ export default function Nino({
 
   return (
     <div
-      className={`nino nino-${action} ${glow ? "nino-glow" : ""} ${flash ? "nino-flash" : ""} ${weapon ? "nino-armed" : ""} ${className}`}
+      className={`nino nino-${action} ${glow ? "nino-glow" : ""} ${flash ? "nino-flash" : ""} ${weapon ? "nino-armed" : ""} ${animated ? "" : "nino-still"} ${className}`}
       style={{ width: size, height: size * (170 / 120), ...style }}
       onClick={onClick}
       role={onClick ? "button" : undefined}

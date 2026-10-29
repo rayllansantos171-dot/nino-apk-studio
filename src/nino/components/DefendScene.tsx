@@ -24,7 +24,7 @@ export default function DefendScene({ weapon, line, onDone }: Props) {
           💨
         </span>
         <div className="speech defend-speech">{line}</div>
-        <Nino size={150} action="stomp" expression="angry" weapon={weapon} glow />
+        <Nino animated size={150} action="stomp" expression="angry" weapon={weapon} glow />
         {bangs.map((b, i) => (
           <span key={i} className={`defend-bang bang${i + 1} ${weapon}`} aria-hidden="true">
             {b}

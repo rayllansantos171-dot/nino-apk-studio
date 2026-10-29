@@ -148,6 +148,7 @@ export default function FloatingAgent() {
       >
         {snap && snap.bubble && <div className={`speech ${bubbleLeft ? "left" : "right"}`}>{snap.bubble}</div>}
         <Nino
+          animated
           size={size}
           action={snap ? snap.action : "idle"}
           expression={snap ? snap.expression : "normal"}

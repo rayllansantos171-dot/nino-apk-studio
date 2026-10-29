@@ -21,7 +21,7 @@ export function Splash({ onStart }: { onStart: () => void }) {
         </p>
       </div>
       <div className="splash-hero">
-        <Nino size={210} action="wave" expression="happy" />
+        <Nino size={210} action="idle" expression="happy" />
       </div>
       <button className="primary-btn" onClick={onStart}>
         Começar <IconChevron size={18} />

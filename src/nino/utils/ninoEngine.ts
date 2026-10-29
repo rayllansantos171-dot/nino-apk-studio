@@ -36,7 +36,7 @@ export type Action =
   | "stomp"
   | "laugh"
   | "spin"
-  | "flip"
+  | "backflip"
   | "clap"
   | "flex"
   | "bow"
@@ -368,7 +368,7 @@ export function createNinoEngine(cfg: EngineConfig) {
       action = "jump";
       expr = "happy";
       if (Math.random() < 0.25) {
-        action = "flip";
+        action = "backflip";
         vy = -1050;
         lock(950);
       }
@@ -836,7 +836,7 @@ export function createNinoEngine(cfg: EngineConfig) {
       vx = 0;
       mode = "air";
       src = "jump";
-      action = name === "flip" ? "flip" : "jump";
+      action = name === "flip" ? "backflip" : "jump";
       expr = "happy";
       say(line, 1800);
       sound("pop");
