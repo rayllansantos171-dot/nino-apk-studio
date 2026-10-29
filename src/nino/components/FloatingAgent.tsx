@@ -89,8 +89,9 @@ export default function FloatingAgent() {
       const { text, cmds } = (e as CustomEvent<{ text: string; cmds: VoiceCommand[] }>).detail;
       const engine = engineRef.current;
       if (!engine) return;
-      if (cmds.length) {
-        engine.command(cmds[0]);
+      const first = cmds[0];
+      if (first) {
+        engine.command(first);
         cmds.slice(1).forEach((c, i) => {
           timers.push(window.setTimeout(() => engineRef.current?.command(c), 2200 * (i + 1)));
         });
