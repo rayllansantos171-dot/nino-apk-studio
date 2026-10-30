@@ -53,6 +53,8 @@ public class ListeningService extends Service {
     private int errors = 0;
     /** Depois de só chamar "Nino", a próxima frase (até esse instante) vale como ordem, sem repetir o nome. */
     private long awaitUntil = 0;
+    private boolean handledPartial = false;
+    private final Runnable restart = new Runnable() { @Override public void run() { startRec(); } };
 
     @Override public IBinder onBind(Intent intent) { return null; }
 
@@ -79,7 +81,8 @@ public class ListeningService extends Service {
         recIntent.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM);
         recIntent.putExtra(RecognizerIntent.EXTRA_LANGUAGE, "pt-BR");
         recIntent.putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 3);
-        recIntent.putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, false);
+        recIntent.putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, true);
+        recIntent.putExtra(RecognizerIntent.EXTRA_LANGUAGE_PREFERENCE, "pt-BR");
         recIntent.putExtra(RecognizerIntent.EXTRA_CALLING_PACKAGE, getPackageName());
         active = true;
         running = true;
@@ -88,6 +91,7 @@ public class ListeningService extends Service {
 
     private void startRec() {
         if (!active) return;
+        handledPartial = false;
         try {
             if (sr == null) {
                 sr = SpeechRecognizer.createSpeechRecognizer(this);
@@ -113,12 +117,33 @@ public class ListeningService extends Service {
         @Override public void onRmsChanged(float rmsdB) { }
         @Override public void onBufferReceived(byte[] buffer) { }
         @Override public void onEndOfSpeech() { }
-        @Override public void onPartialResults(Bundle partialResults) { }
+        @Override
+        public void onPartialResults(Bundle partialResults) {
+            // Reage assim que "Nino + ordem conhecida" aparece, sem esperar a pessoa terminar de falar.
+            if (handledPartial) return;
+            ArrayList<String> list = partialResults.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION);
+            if (list == null) return;
+            for (String candidate : list) {
+                String command = extractCommand(candidate);
+                if (command != null && !WAKE_ONLY.equals(command)
+                        && (overlayCommand(command) != null || appHasOrder(command))) {
+                    handledPartial = true;
+                    awaitUntil = 0;
+                    heard(command);
+                    deliver(command);
+                    resetRecognizer();
+                    h.removeCallbacks(restart);
+                    h.postDelayed(restart, 400);
+                    return;
+                }
+            }
+        }
         @Override public void onEvent(int eventType, Bundle params) { }
 
         @Override
         public void onResults(Bundle results) {
             errors = 0;
+            if (handledPartial) return;
             ArrayList<String> list = results.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION);
             if (list != null) {
                 boolean following = System.currentTimeMillis() < awaitUntil;
@@ -127,6 +152,7 @@ public class ListeningService extends Service {
                     String command = extractCommand(candidate);
                     if (command != null) {
                         handled = true;
+                        heard(WAKE_ONLY.equals(command) ? "Nino" : command);
                         if (WAKE_ONLY.equals(command)) {
                             // Só chamou: Nino acena e espera a ordem na próxima frase.
                             awaitUntil = System.currentTimeMillis() + 8000;
@@ -154,7 +180,10 @@ public class ListeningService extends Service {
 
         @Override
         public void onError(int error) {
-            if (!active) return;
+            if (!active || handledPartial) return;
+            if (error != SpeechRecognizer.ERROR_NO_MATCH && error != SpeechRecognizer.ERROR_SPEECH_TIMEOUT) {
+                status("Problema ao ouvir (código " + error + "). Tentando de novo…");
+            }
             if (error == SpeechRecognizer.ERROR_INSUFFICIENT_PERMISSIONS) {
                 stopSelf();
                 return;
@@ -171,6 +200,22 @@ public class ListeningService extends Service {
             h.postDelayed(ListeningService.this::startRec, delay);
         }
     };
+
+    private String lastStatus = "";
+
+    private void status(String text) {
+        if (text.equals(lastStatus)) return;
+        lastStatus = text;
+        try {
+            NotificationManager nm = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
+            nm.notify(2, buildListenNotification(text));
+        } catch (RuntimeException ignored) { }
+    }
+
+    /** Mostra na notificação o que o Nino ouviu por último (ajuda a ver se a voz está chegando). */
+    private void heard(String text) {
+        status("Ouvi: “" + text + "”");
+    }
 
     /** Procura "Nino" na frase e devolve o que veio depois (ou "Oi, Nino!" se só chamou). */
     static String extractCommand(String heard) {
@@ -240,22 +285,27 @@ public class ListeningService extends Service {
         nm.notify(3, n);
     }
 
+    private Notification buildListenNotification(String text) {
+        PendingIntent open = PendingIntent.getActivity(this, 0, new Intent(this, MainActivity.class), PendingIntent.FLAG_IMMUTABLE);
+        PendingIntent stop = PendingIntent.getService(this, 2,
+                new Intent(this, ListeningService.class).setAction(ACTION_STOP), PendingIntent.FLAG_IMMUTABLE);
+        return new NotificationCompat.Builder(this, CH_LISTEN)
+                .setContentTitle("Nino está ouvindo")
+                .setContentText(text)
+                .setSmallIcon(R.mipmap.ic_launcher)
+                .setContentIntent(open)
+                .addAction(0, "Parar", stop)
+                .setOngoing(true)
+                .setOnlyAlertOnce(true)
+                .build();
+    }
+
     private void startAsForeground() {
         NotificationManager nm = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             nm.createNotificationChannel(new NotificationChannel(CH_LISTEN, "Nino ouvindo", NotificationManager.IMPORTANCE_LOW));
         }
-        PendingIntent open = PendingIntent.getActivity(this, 0, new Intent(this, MainActivity.class), PendingIntent.FLAG_IMMUTABLE);
-        PendingIntent stop = PendingIntent.getService(this, 2,
-                new Intent(this, ListeningService.class).setAction(ACTION_STOP), PendingIntent.FLAG_IMMUTABLE);
-        Notification n = new NotificationCompat.Builder(this, CH_LISTEN)
-                .setContentTitle("Nino está ouvindo")
-                .setContentText("Diga “Nino” e o que precisa. Toque em Parar para desligar.")
-                .setSmallIcon(R.mipmap.ic_launcher)
-                .setContentIntent(open)
-                .addAction(0, "Parar", stop)
-                .setOngoing(true)
-                .build();
+        Notification n = buildListenNotification("Diga “Nino” e a ordem. Toque em Parar para desligar.");
         if (Build.VERSION.SDK_INT >= 30) {
             startForeground(2, n, ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE);
         } else {

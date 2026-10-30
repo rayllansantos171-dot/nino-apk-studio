@@ -109,7 +109,14 @@ export default function Home({
           onClick={() => {
             const next = !settings.onScreen;
             update({ floating: next, onScreen: next });
-            void setNativeOverlay(next, settings.skin);
+            void (async () => {
+              // Ao ativar o Nino na tela, ele já passa a ouvir "Nino + ordem" (pede o microfone se precisar).
+              if (next && native && !settings.listening) {
+                const running = await setNativeListening(true);
+                update({ listening: running });
+              }
+              await setNativeOverlay(next, settings.skin);
+            })();
           }}
         >
           <IconRocket size={20} /> {settings.onScreen ? "DESATIVAR DA TELA" : "ATIVAR NA TELA"}
