@@ -46,6 +46,16 @@ jobs:
       - name: Aceitar licenças do Android SDK
         run: yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses > /dev/null || true
 
+      - name: Baixar modelo de voz offline em português (Vosk)
+        run: |
+          mkdir -p android/app/src/main/assets
+          curl -fsSL -o /tmp/model-pt.zip https://alphacephei.com/vosk/models/vosk-model-small-pt-0.3.zip
+          unzip -q /tmp/model-pt.zip -d /tmp/model-unz
+          rm -rf android/app/src/main/assets/model-pt
+          mv /tmp/model-unz/vosk-model-small-pt-0.3 android/app/src/main/assets/model-pt
+          cat /proc/sys/kernel/random/uuid > android/app/src/main/assets/model-pt/uuid
+          du -sh android/app/src/main/assets/model-pt
+
       - name: Compilar APK
         working-directory: android
         run: |

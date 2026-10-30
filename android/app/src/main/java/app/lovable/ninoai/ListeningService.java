@@ -73,10 +73,6 @@ public class ListeningService extends Service {
             stopSelf();
             return;
         }
-        if (!SpeechRecognizer.isRecognitionAvailable(this)) {
-            stopSelf();
-            return;
-        }
         recIntent = new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
         recIntent.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM);
         recIntent.putExtra(RecognizerIntent.EXTRA_LANGUAGE, "pt-BR");
@@ -86,11 +82,82 @@ public class ListeningService extends Service {
         recIntent.putExtra(RecognizerIntent.EXTRA_CALLING_PACKAGE, getPackageName());
         active = true;
         running = true;
+        startVoskOrFallback();
+    }
+
+    // ---- Motor offline (Vosk): reconhece português sem internet e sem depender do app do Google ----
+
+    private org.vosk.Model voskModel;
+    private org.vosk.android.SpeechService voskService;
+    private boolean usingVosk = false;
+    private boolean voskDone = false;
+
+    private void startVoskOrFallback() {
+        try {
+            org.vosk.android.StorageService.unpack(this, "model-pt", "model",
+                    (org.vosk.Model model) -> {
+                        if (!active) { model.close(); return; }
+                        voskModel = model;
+                        startVosk();
+                    },
+                    (java.io.IOException e) -> fallbackToAndroid("Voz offline indisponível, usando a do Android."));
+        } catch (Throwable t) {
+            fallbackToAndroid("Voz offline indisponível, usando a do Android.");
+        }
+    }
+
+    private void startVosk() {
+        try {
+            org.vosk.Recognizer rec = new org.vosk.Recognizer(voskModel, 16000.0f);
+            voskService = new org.vosk.android.SpeechService(rec, 16000.0f);
+            voskService.startListening(voskListener);
+            usingVosk = true;
+            status("Ouvindo (offline). Diga “Nino” e a ordem.");
+        } catch (Throwable t) {
+            fallbackToAndroid("Voz offline falhou, usando a do Android.");
+        }
+    }
+
+    private void fallbackToAndroid(String why) {
+        if (!active) return;
+        usingVosk = false;
+        if (!SpeechRecognizer.isRecognitionAvailable(this)) {
+            status("Sem reconhecimento de voz neste aparelho.");
+            stopSelf();
+            return;
+        }
+        status(why);
         h.post(this::startRec);
     }
 
+    private static String jsonText(String json, String key) {
+        try { return new org.json.JSONObject(json).optString(key, ""); } catch (org.json.JSONException e) { return ""; }
+    }
+
+    private final org.vosk.android.RecognitionListener voskListener = new org.vosk.android.RecognitionListener() {
+        @Override public void onPartialResult(String hypothesis) {
+            final String t = jsonText(hypothesis, "partial");
+            if (t.isEmpty() || voskDone || NinoVoice.isBusy()) return;
+            h.post(new Runnable() { @Override public void run() {
+                if (!voskDone && tryPartial(java.util.Collections.singletonList(t))) voskDone = true;
+            } });
+        }
+        @Override public void onResult(String hypothesis) { finish(jsonText(hypothesis, "text")); }
+        @Override public void onFinalResult(String hypothesis) { finish(jsonText(hypothesis, "text")); }
+        private void finish(final String t) {
+            h.post(new Runnable() { @Override public void run() {
+                boolean already = voskDone;
+                voskDone = false;
+                if (already || t.isEmpty() || NinoVoice.isBusy()) return;
+                handleFinal(java.util.Collections.singletonList(t));
+            } });
+        }
+        @Override public void onError(Exception e) { h.post(new Runnable() { @Override public void run() { fallbackToAndroid("Voz offline parou, usando a do Android."); } }); }
+        @Override public void onTimeout() { }
+    };
+
     private void startRec() {
-        if (!active) return;
+        if (!active || usingVosk) return;
         handledPartial = false;
         try {
             if (sr == null) {
@@ -119,23 +186,13 @@ public class ListeningService extends Service {
         @Override public void onEndOfSpeech() { }
         @Override
         public void onPartialResults(Bundle partialResults) {
-            // Reage assim que "Nino + ordem conhecida" aparece, sem esperar a pessoa terminar de falar.
             if (handledPartial || NinoVoice.isBusy()) return;
             ArrayList<String> list = partialResults.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION);
-            if (list == null) return;
-            for (String candidate : list) {
-                String command = extractCommand(candidate);
-                if (command != null && !WAKE_ONLY.equals(command)
-                        && (overlayCommand(command) != null || appHasOrder(command))) {
-                    handledPartial = true;
-                    awaitUntil = 0;
-                    heard(command);
-                    deliver(command);
-                    resetRecognizer();
-                    h.removeCallbacks(restart);
-                    h.postDelayed(restart, 400);
-                    return;
-                }
+            if (list != null && tryPartial(list)) {
+                handledPartial = true;
+                resetRecognizer();
+                h.removeCallbacks(restart);
+                h.postDelayed(restart, 400);
             }
         }
         @Override public void onEvent(int eventType, Bundle params) { }
@@ -149,6 +206,50 @@ public class ListeningService extends Service {
                 return;
             }
             ArrayList<String> list = results.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION);
+            if (list != null) handleFinal(list);
+            h.postDelayed(ListeningService.this::startRec, 250);
+        }
+
+        @Override
+        public void onError(int error) {
+            if (!active || handledPartial) return;
+            if (error != SpeechRecognizer.ERROR_NO_MATCH && error != SpeechRecognizer.ERROR_SPEECH_TIMEOUT) {
+                status("Problema ao ouvir (código " + error + "). Tentando de novo…");
+            }
+            if (error == SpeechRecognizer.ERROR_INSUFFICIENT_PERMISSIONS) {
+                stopSelf();
+                return;
+            }
+            long delay = 300;
+            if (error == SpeechRecognizer.ERROR_RECOGNIZER_BUSY || error == SpeechRecognizer.ERROR_CLIENT) {
+                resetRecognizer();
+                delay = 800;
+            } else if (error != SpeechRecognizer.ERROR_NO_MATCH && error != SpeechRecognizer.ERROR_SPEECH_TIMEOUT) {
+                // Erro de rede/servidor: espera mais para não ficar em laço rápido.
+                resetRecognizer();
+                delay = ++errors < 6 ? 1000 : 5000;
+            }
+            h.postDelayed(ListeningService.this::startRec, delay);
+        }
+    };
+
+    /** "Nino + ordem conhecida" já apareceu no meio da frase? Então obedece na hora. */
+    private boolean tryPartial(java.util.List<String> list) {
+        for (String candidate : list) {
+            String command = extractCommand(candidate);
+            if (command != null && !WAKE_ONLY.equals(command)
+                    && (overlayCommand(command) != null || appHasOrder(command))) {
+                awaitUntil = 0;
+                heard(command);
+                deliver(command);
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /** Frase completa ouvida (por qualquer motor de voz): obedece, responde ou espera a ordem. */
+    private void handleFinal(java.util.List<String> list) {
             if (list != null) {
                 boolean following = System.currentTimeMillis() < awaitUntil;
                 boolean handled = false;
@@ -182,31 +283,7 @@ public class ListeningService extends Service {
                     }
                 }
             }
-            h.postDelayed(ListeningService.this::startRec, 250);
-        }
-
-        @Override
-        public void onError(int error) {
-            if (!active || handledPartial) return;
-            if (error != SpeechRecognizer.ERROR_NO_MATCH && error != SpeechRecognizer.ERROR_SPEECH_TIMEOUT) {
-                status("Problema ao ouvir (código " + error + "). Tentando de novo…");
-            }
-            if (error == SpeechRecognizer.ERROR_INSUFFICIENT_PERMISSIONS) {
-                stopSelf();
-                return;
-            }
-            long delay = 300;
-            if (error == SpeechRecognizer.ERROR_RECOGNIZER_BUSY || error == SpeechRecognizer.ERROR_CLIENT) {
-                resetRecognizer();
-                delay = 800;
-            } else if (error != SpeechRecognizer.ERROR_NO_MATCH && error != SpeechRecognizer.ERROR_SPEECH_TIMEOUT) {
-                // Erro de rede/servidor: espera mais para não ficar em laço rápido.
-                resetRecognizer();
-                delay = ++errors < 6 ? 1000 : 5000;
-            }
-            h.postDelayed(ListeningService.this::startRec, delay);
-        }
-    };
+    }
 
     private String lastStatus = "";
 
@@ -373,6 +450,14 @@ public class ListeningService extends Service {
         running = false;
         h.removeCallbacksAndMessages(null);
         resetRecognizer();
+        if (voskService != null) {
+            try { voskService.stop(); voskService.shutdown(); } catch (Throwable ignored) { }
+            voskService = null;
+        }
+        if (voskModel != null) {
+            try { voskModel.close(); } catch (Throwable ignored) { }
+            voskModel = null;
+        }
         super.onDestroy();
     }
 }
