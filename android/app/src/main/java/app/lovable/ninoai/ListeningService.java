@@ -120,7 +120,7 @@ public class ListeningService extends Service {
         @Override
         public void onPartialResults(Bundle partialResults) {
             // Reage assim que "Nino + ordem conhecida" aparece, sem esperar a pessoa terminar de falar.
-            if (handledPartial) return;
+            if (handledPartial || NinoVoice.isBusy()) return;
             ArrayList<String> list = partialResults.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION);
             if (list == null) return;
             for (String candidate : list) {
@@ -144,6 +144,10 @@ public class ListeningService extends Service {
         public void onResults(Bundle results) {
             errors = 0;
             if (handledPartial) return;
+            if (NinoVoice.isBusy()) { // não ouvir a própria voz do Nino
+                h.postDelayed(ListeningService.this::startRec, 500);
+                return;
+            }
             ArrayList<String> list = results.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION);
             if (list != null) {
                 boolean following = System.currentTimeMillis() < awaitUntil;
@@ -156,7 +160,10 @@ public class ListeningService extends Service {
                         if (WAKE_ONLY.equals(command)) {
                             // Só chamou: Nino acena e espera a ordem na próxima frase.
                             awaitUntil = System.currentTimeMillis() + 8000;
-                            if (!FloatingNinoService.perform("wave")) deliver("Oi, Nino!");
+                            FloatingNinoService.perform("wave", false);
+                            if (!FloatingNinoService.say("Oi! Pode falar.", true)) {
+                                NinoVoice.speak(ListeningService.this, "Oi! Pode falar.");
+                            }
                         } else {
                             awaitUntil = 0;
                             deliver(command);
@@ -248,6 +255,47 @@ public class ListeningService extends Service {
         return null;
     }
 
+    private static final String[] MESES = {"janeiro", "fevereiro", "março", "abril", "maio", "junho", "julho",
+            "agosto", "setembro", "outubro", "novembro", "dezembro"};
+    private static final String[] DIAS = {"domingo", "segunda-feira", "terça-feira", "quarta-feira", "quinta-feira",
+            "sexta-feira", "sábado"};
+    private static final String[] PIADAS = {
+            "Por que o computador foi ao médico? Porque estava com vírus!",
+            "O que o zero disse pro oito? Belo cinto!",
+            "Qual é o cúmulo da velocidade? Fechar a porta do elevador e ir pelas escadas.",
+            "Por que o livro de matemática ficou triste? Porque tinha muitos problemas."};
+
+    /** Respostas rápidas que o Nino dá sozinho, sem abrir o app (null se não souber). */
+    private String localReply(String text) {
+        String n = Normalizer.normalize(text, Normalizer.Form.NFD).replaceAll("\\p{M}+", "")
+                .toLowerCase(Locale.ROOT).replaceAll("[^a-z0-9 ]+", " ");
+        java.util.Calendar c = java.util.Calendar.getInstance();
+        java.util.Random r = new java.util.Random();
+        if (n.matches(".*\\b(que horas|horas sao|hora e|me diga a hora)\\b.*")) {
+            int m = c.get(java.util.Calendar.MINUTE);
+            return "São " + c.get(java.util.Calendar.HOUR_OF_DAY) + (m == 0 ? " horas em ponto." : " e " + m + ".");
+        }
+        if (n.matches(".*\\b(que dia|qual a data|data de hoje|dia e hoje|dia da semana)\\b.*")) {
+            return "Hoje é " + DIAS[c.get(java.util.Calendar.DAY_OF_WEEK) - 1] + ", dia "
+                    + c.get(java.util.Calendar.DAY_OF_MONTH) + " de " + MESES[c.get(java.util.Calendar.MONTH)] + ".";
+        }
+        if (n.matches(".*\\b(tudo bem|como voce esta|como vai voce|como voce ta|ta tudo bem)\\b.*")) {
+            String[] o = {"Tudo ótimo por aqui!", "Estou bem, e você?", "Feliz da vida, pixelzinho!"};
+            return o[r.nextInt(o.length)];
+        }
+        if (n.matches(".*\\b(seu nome|quem e voce|quem voce e|como voce se chama)\\b.*")) {
+            return "Eu sou o Nino, seu agente aqui na tela!";
+        }
+        if (n.matches(".*\\b(obrigad[oa]|valeu|brigad[oa])\\b.*")) return "De nada! Estou aqui pra isso.";
+        if (n.matches(".*\\b(piada|me faz rir|conta uma)\\b.*")) return PIADAS[r.nextInt(PIADAS.length)];
+        if (n.matches(".*\\b(te amo|amo voce|gosto de voce)\\b.*")) return "Awn, eu também gosto muito de você!";
+        if (n.matches(".*\\b(bom dia|boa tarde|boa noite|oi|ola|e ai|eai|salve)\\b.*")) {
+            String[] o = {"Oi! Como posso ajudar?", "E aí! Tudo bem?", "Olá, humano!"};
+            return o[r.nextInt(o.length)];
+        }
+        return null;
+    }
+
     /** Há alguma ordem que o app (não o Nino da tela) entende? Mantém em sincronia com voiceCommands.ts. */
     private static boolean appHasOrder(String text) {
         String n = Normalizer.normalize(text, Normalizer.Form.NFD).replaceAll("\\p{M}+", "").toLowerCase(Locale.ROOT);
@@ -258,7 +306,13 @@ public class ListeningService extends Service {
     private void deliver(String command) {
         // Com o Nino na tela (sobre outros apps), ordens simples são obedecidas ali mesmo, sem abrir o app.
         String order = overlayCommand(command);
-        if (order != null && FloatingNinoService.perform(order)) return;
+        if (order != null && FloatingNinoService.perform(order, true)) return;
+        String reply = localReply(command);
+        if (reply != null) {
+            if (!FloatingNinoService.say(reply, true)) NinoVoice.speak(this, reply);
+            return;
+        }
+        FloatingNinoService.say("Hmm, deixa eu ver...", false); // balão enquanto o app abre para pensar
         Intent i = new Intent(this, MainActivity.class);
         i.putExtra(NinoListenPlugin.EXTRA_TEXT, command);
         i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_SINGLE_TOP | Intent.FLAG_ACTIVITY_REORDER_TO_FRONT);

@@ -24,7 +24,7 @@ function getArena(): Arena {
 }
 
 /** Nino flutuante com física: anda no chão, pode ser pego, jogado, derrubado de alto, golpeado e mimado. */
-export default function FloatingAgent() {
+export default function FloatingAgent({ interactive = true }: { interactive?: boolean }) {
   const { settings } = useSettings();
   const size = SIZE_PX[settings.size];
 
@@ -139,7 +139,7 @@ export default function FloatingAgent() {
     <>
       <div
         ref={elRef}
-        className={`floating-agent tool-${tool} ${snap && snap.held ? "held" : ""}`}
+        className={`floating-agent tool-${tool} ${snap && snap.held ? "held" : ""} ${interactive ? "" : "passive"}`}
         style={{ width: size, height: size * (170 / 120), visibility: "hidden" }}
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}

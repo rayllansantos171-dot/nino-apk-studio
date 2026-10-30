@@ -123,7 +123,7 @@ function Shell() {
         </nav>
       )}
 
-      {showFloating && view !== "chat" && <FloatingAgent />}
+      {showFloating && view !== "chat" && <FloatingAgent interactive={view === "agente"} />}
     </div>
   );
 }

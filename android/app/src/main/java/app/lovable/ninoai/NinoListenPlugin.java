@@ -85,6 +85,20 @@ public class NinoListenPlugin extends Plugin {
         call.resolve();
     }
 
+    /** Voz nativa do Nino: o WebView do Android quase nunca tem speechSynthesis. */
+    @PluginMethod
+    public void speak(PluginCall call) {
+        String text = call.getString("text", "");
+        NinoVoice.speak(getContext(), text);
+        call.resolve();
+    }
+
+    @PluginMethod
+    public void stopSpeaking(PluginCall call) {
+        NinoVoice.stop();
+        call.resolve();
+    }
+
     @PluginMethod
     public void stop(PluginCall call) {
         getContext().stopService(new Intent(getContext(), ListeningService.class));

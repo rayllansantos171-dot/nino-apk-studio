@@ -362,3 +362,6 @@ h1, h2, h3, p { margin: 0; }
 }
 .perm-btn:disabled { opacity: .55; }
 .perm-note { margin: 10px 4px 0; color: var(--muted); font-size: 12px; line-height: 1.45; }
+
+/* Fora da aba Agente o Nino só acompanha: não captura toques em botões e listas por baixo dele. */
+.floating-agent.passive { pointer-events: none; }

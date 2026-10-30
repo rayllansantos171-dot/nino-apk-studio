@@ -1,5 +1,8 @@
+import { nativeSpeak } from "./nativeListen";
+
 /** Lê um texto em voz alta (pt-BR), sem os emojis. */
 export function speak(text: string) {
+  if (nativeSpeak(text)) return;
   try {
     const synth = window.speechSynthesis;
     if (!synth) return;

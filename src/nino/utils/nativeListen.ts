@@ -5,6 +5,8 @@ interface NinoListenPlugin {
   requestPermission(): Promise<{ granted: boolean }>;
   start(): Promise<void>;
   stop(): Promise<void>;
+  speak(options: { text: string }): Promise<void>;
+  stopSpeaking(): Promise<void>;
   isRunning(): Promise<{ running: boolean }>;
   addListener(event: "voiceCommand", cb: (e: { text: string }) => void): Promise<PluginListenerHandle>;
 }
@@ -55,4 +57,11 @@ export function onVoiceCommand(cb: (text: string) => void): () => void {
     cancelled = true;
     if (handle) void handle.remove();
   };
+}
+
+/** Fala com a voz nativa do Android (o WebView quase nunca tem voz própria). false se não for o app. */
+export function nativeSpeak(text: string): boolean {
+  if (!native()) return false;
+  NinoListen.speak({ text }).catch(() => {});
+  return true;
 }

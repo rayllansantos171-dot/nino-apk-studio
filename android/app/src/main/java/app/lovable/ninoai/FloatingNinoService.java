@@ -8,6 +8,8 @@ import android.app.Service;
 import android.content.Intent;
 import android.content.pm.ServiceInfo;
 import android.graphics.Color;
+import android.graphics.drawable.GradientDrawable;
+import android.widget.TextView;
 import android.graphics.PixelFormat;
 import android.os.Build;
 import android.os.Handler;
@@ -39,6 +41,14 @@ public class FloatingNinoService extends Service {
     private String state = "idle";
     private int stateTicks = 0;
     private float vy = 0;
+    private TextView bubble;
+    private WindowManager.LayoutParams blp;
+    private long bubbleUntil = 0;
+    private long lastTapAt = 0;
+    private static final String[] CHATTER = {
+            "Que dia lindo! ☀️", "Tô de olho em tudo por aqui 👀", "Me chama de Nino que eu obedeço!",
+            "Já tomou água hoje? 💧", "Me arrasta pra onde quiser!", "Quer ver um pulo? Diga: Nino, pular!",
+            "Hmm... o que será que tem aí nesse app?", "Tô aqui se precisar! 💜", "Sabia que eu danço? Diga: Nino, dançar!"};
     private int sizePx;
     private static volatile FloatingNinoService instance;
     private static volatile String skin = "padrao";
@@ -58,17 +68,91 @@ public class FloatingNinoService extends Service {
     }
 
     /** Faz o Nino sobre outros apps obedecer uma ordem de voz. Devolve false se ele não está na tela. */
-    static boolean perform(final String cmd) {
+    static boolean perform(final String cmd) { return perform(cmd, false); }
+
+    static boolean perform(final String cmd, final boolean talk) {
         final FloatingNinoService s = instance;
         if (s == null || s.view == null) return false;
-        s.h.post(new Runnable() { @Override public void run() { s.doCommand(cmd); } });
+        s.h.post(new Runnable() { @Override public void run() { s.doCommand(cmd, talk); } });
         return true;
+    }
+
+    /** Mostra um balão de fala sobre o Nino (e fala em voz alta, se pedido). false se ele não está na tela. */
+    static boolean say(final String text, final boolean speak) {
+        final FloatingNinoService s = instance;
+        if (s == null || s.view == null) return false;
+        s.h.post(new Runnable() { @Override public void run() { s.showBubble(text, speak); } });
+        return true;
+    }
+
+    private static String lineFor(String cmd) {
+        switch (cmd) {
+            case "jump": return "Pulando! 🦘";
+            case "backflip": return "Olha essa cambalhota! 🤸";
+            case "dance": return "Hora do show! 🎶";
+            case "wave": return "Oi, oi! 👋";
+            case "spin": return "Girando! 🌀";
+            case "walk": return "Dando uma voltinha!";
+            case "walk_left": return "Indo pra esquerda! ⬅️";
+            case "walk_right": return "Indo pra direita! ➡️";
+            case "run_left": return "Correndo pra esquerda!";
+            case "run_right": return "Correndo pra direita!";
+            case "stop": return "Parei! 🛑";
+            default: return null;
+        }
+    }
+
+    private void showBubble(String text, boolean speak) {
+        if (bubble == null || view == null) return;
+        bubble.setText(text);
+        bubble.setVisibility(View.VISIBLE);
+        bubbleUntil = System.currentTimeMillis() + 2600 + text.length() * 45L;
+        positionBubble();
+        if (speak) NinoVoice.speak(this, text);
+    }
+
+    private void positionBubble() {
+        if (bubble == null || blp == null || view == null || bubble.getVisibility() != View.VISIBLE) return;
+        bubble.measure(View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED),
+                View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED));
+        int bw = bubble.getMeasuredWidth(), bh = bubble.getMeasuredHeight();
+        int x = lp.x + sizePx / 2 - bw / 2;
+        x = Math.max(4, Math.min(screenW() - bw - 4, x));
+        int y = lp.y - bh - 2;
+        if (y < 0) y = lp.y + sizePx - 8;
+        blp.x = x; blp.y = y;
+        try { wm.updateViewLayout(bubble, blp); } catch (RuntimeException ignored) { }
+    }
+
+    private void buildBubble() {
+        float d = getResources().getDisplayMetrics().density;
+        bubble = new TextView(this);
+        bubble.setTextColor(Color.WHITE);
+        bubble.setTextSize(13);
+        bubble.setMaxWidth((int) (230 * d));
+        bubble.setPadding((int) (12 * d), (int) (8 * d), (int) (12 * d), (int) (8 * d));
+        GradientDrawable bg = new GradientDrawable();
+        bg.setColor(Color.parseColor("#EE1B1430"));
+        bg.setStroke((int) (2 * d), Color.parseColor("#A855F7"));
+        bg.setCornerRadius(14 * d);
+        bubble.setBackground(bg);
+        bubble.setVisibility(View.GONE);
+        int type = Build.VERSION.SDK_INT >= Build.VERSION_CODES.O
+                ? WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY : WindowManager.LayoutParams.TYPE_PHONE;
+        blp = new WindowManager.LayoutParams(WindowManager.LayoutParams.WRAP_CONTENT,
+                WindowManager.LayoutParams.WRAP_CONTENT, type,
+                WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE | WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE
+                        | WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS, PixelFormat.TRANSLUCENT);
+        blp.gravity = Gravity.TOP | Gravity.START;
+        try { wm.addView(bubble, blp); } catch (RuntimeException e) { bubble = null; }
     }
 
     private int floorY() { return screenH() - sizePx - 120; }
 
-    private void doCommand(String cmd) {
+    private void doCommand(String cmd, boolean talk) {
         if (view == null || dragging) return;
+        String line = lineFor(cmd);
+        if (line != null) showBubble(line, talk);
         switch (cmd) {
             case "jump":
                 lp.y = Math.min(lp.y, floorY()) - 1; vy = -24; setState("jump"); stateTicks = 30; break;
@@ -123,6 +207,7 @@ public class FloatingNinoService extends Service {
                 switch (e.getAction()) {
                     case MotionEvent.ACTION_DOWN:
                         dragging = true; setState("drag");
+                        showBubble("Ei! 😮", false);
                         sx = lp.x; sy = lp.y; tx = e.getRawX(); ty = e.getRawY(); t0 = System.currentTimeMillis();
                         return true;
                     case MotionEvent.ACTION_MOVE:
@@ -134,8 +219,12 @@ public class FloatingNinoService extends Service {
                         dragging = false; vy = 0;
                         boolean tap = Math.abs(e.getRawX() - tx) < 12 && Math.abs(e.getRawY() - ty) < 12
                                 && System.currentTimeMillis() - t0 < 300;
-                        if (tap) { setState("wave"); stateTicks = 40; openApp(); }
-                        else setState("idle");
+                        if (tap) {
+                            long now = System.currentTimeMillis();
+                            setState("wave"); stateTicks = 40;
+                            if (now - lastTapAt < 600) { lastTapAt = 0; openApp(); } // toque duplo abre o app
+                            else { lastTapAt = now; showBubble("Oi! Toque duas vezes pra abrir o app 😄", false); }
+                        } else setState("idle");
                         return true;
                 }
                 return false;
@@ -148,6 +237,7 @@ public class FloatingNinoService extends Service {
             stopSelf();
             return;
         }
+        buildBubble();
         h.post(tick);
     }
 
@@ -168,6 +258,9 @@ public class FloatingNinoService extends Service {
                     if (lp.y >= floor) { vy = 0; setState("jump"); stateTicks = 15; }
                 } else {
                     if (--stateTicks <= 0) {
+                        if (rnd.nextInt(6) == 0 && bubble != null && bubble.getVisibility() != View.VISIBLE) {
+                            showBubble(CHATTER[rnd.nextInt(CHATTER.length)], false);
+                        }
                         int r = rnd.nextInt(10);
                         if (r < 6) { if (rnd.nextBoolean()) dir = -dir; walkSpeed = 4; setState("walk"); stateTicks = 60 + rnd.nextInt(120); }
                         else if (r < 8) { setState("idle"); stateTicks = 40 + rnd.nextInt(80); }
@@ -181,6 +274,10 @@ public class FloatingNinoService extends Service {
                     }
                 }
                 wm.updateViewLayout(view, lp);
+                if (bubble != null && bubble.getVisibility() == View.VISIBLE) {
+                    if (System.currentTimeMillis() > bubbleUntil) bubble.setVisibility(View.GONE);
+                    else positionBubble();
+                }
             }
             h.postDelayed(this, 33);
         }
@@ -221,6 +318,11 @@ public class FloatingNinoService extends Service {
             try { wm.removeView(view); } catch (RuntimeException ignored) { }
             view = null;
         }
+        if (bubble != null && wm != null) {
+            try { wm.removeView(bubble); } catch (RuntimeException ignored) { }
+            bubble = null;
+        }
+        NinoVoice.stop();
         if (web != null) web.destroy();
         super.onDestroy();
     }
