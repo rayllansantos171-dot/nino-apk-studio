@@ -1,6 +1,8 @@
 {
-  "name": "tanstack_start_ts",
+  "name": "nino-apk-studio",
   "private": true,
+  "description": "Nino AI Android app wrapper and web experience",
+  "version": "1.0.0",
   "sideEffects": false,
   "type": "module",
   "scripts": {
@@ -97,5 +99,8 @@
     "typescript-eslint": "^8.56.1",
     "vite": "8.1.5",
     "vitest": "^4.1.10"
+  },
+  "engines": {
+    "node": ">=18.18.0"
   }
 }
