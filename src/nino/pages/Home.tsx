@@ -79,7 +79,6 @@ export default function Home({
       </header>
 
       <section className="hero">
-        <div className="speech hero-speech">E ai! Bora ficar por aqui? 🚀</div>
         <button className="hero-nino" onClick={onOpenChat} aria-label="Conversar com o Nino">
           <Nino size={150} action="idle" expression="normal" glow={settings.glow} particles={settings.particles} />
         </button>

@@ -11,10 +11,16 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as NinoAiRouteImport } from './routes/nino-ai'
+import { Route as ApiNinoChatRouteImport } from './routes/api.nino-chat'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiNinoChatRoute = ApiNinoChatRouteImport.update({
+  id: '/api/nino-chat',
+  path: '/api/nino-chat',
   getParentRoute: () => rootRouteImport,
 } as any)
 const NinoAiRoute = NinoAiRouteImport.update({
@@ -26,27 +32,31 @@ const NinoAiRoute = NinoAiRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/nino-ai': typeof NinoAiRoute
+  '/api/nino-chat': typeof ApiNinoChatRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/nino-ai': typeof NinoAiRoute
+  '/api/nino-chat': typeof ApiNinoChatRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/nino-ai': typeof NinoAiRoute
+  '/api/nino-chat': typeof ApiNinoChatRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/nino-ai'
+  fullPaths: '/' | '/nino-ai' | '/api/nino-chat'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/nino-ai'
-  id: '__root__' | '/' | '/nino-ai'
+  to: '/' | '/nino-ai' | '/api/nino-chat'
+  id: '__root__' | '/' | '/nino-ai' | '/api/nino-chat'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   NinoAiRoute: typeof NinoAiRoute
+  ApiNinoChatRoute: typeof ApiNinoChatRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -56,6 +66,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/nino-chat': {
+      id: '/api/nino-chat'
+      path: '/api/nino-chat'
+      fullPath: '/api/nino-chat'
+      preLoaderRoute: typeof ApiNinoChatRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/nino-ai': {
@@ -71,6 +88,7 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   NinoAiRoute: NinoAiRoute,
+  ApiNinoChatRoute: ApiNinoChatRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

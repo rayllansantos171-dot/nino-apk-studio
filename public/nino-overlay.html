@@ -305,9 +305,10 @@ body.happy .eyes-happy{display:inline} body.happy .eyes-normal{display:none}
 window.setTheme=function(a,b,c){var r=document.documentElement.style;r.setProperty('--accent',a);r.setProperty('--accent-2',b);r.setProperty('--accent-soft',c)};
 window.setSkin=function(k){document.body.classList.toggle('anjo',k==='anjo')};
 setSkin((location.hash||'').slice(1));
-var HAPPY={jump:1,backflip:1,dance:1,wave:1,spin:1};
+var HAPPY={jump:1,backflip:1,dance:1,wave:1,spin:1,clap:1,flex:1,laugh:1,love:1,bow:1};
+var CLS={angry:'stomp',love:'laugh'};
 window.setState=function(s,flip){
-  var a=s==='drag'?'hang':s;
+  var a=s==='drag'?'hang':(CLS[s]||s);
   document.getElementById('nino').className='nino nino-'+a+' nino-glow';
   document.body.classList.toggle('happy',!!HAPPY[s]);
   document.getElementById('flip').style.transform=flip?'scaleX(-1)':'';

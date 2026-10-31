@@ -130,6 +130,16 @@ public class FloatingNinoService extends Service {
             case "run_left": return "Correndo pra esquerda!";
             case "run_right": return "Correndo pra direita!";
             case "stop": return "Parei! 🛑";
+            case "sit": return "Sentadinho aqui.";
+            case "sleep": return "Zzz... 😴";
+            case "clap": return "Palmas! 👏";
+            case "flex": return "Olha esses músculos! 💪";
+            case "bow": return "Obrigado, obrigado! 🙇";
+            case "laugh": return "Hahaha! 😆";
+            case "cry": return "Buá... brincadeira! 😅";
+            case "angry": return "Grrr! Tô bravo! 😠";
+            case "love": return "Awn, te amo! 💜";
+            case "think": return "Hmm, pensando... 🤔";
             default: return null;
         }
     }
@@ -199,6 +209,10 @@ public class FloatingNinoService extends Service {
             case "run_left": dir = -1; walkSpeed = 9; setState("walk"); stateTicks = 70; break;
             case "run_right": dir = 1; walkSpeed = 9; setState("walk"); stateTicks = 70; break;
             case "stop": setState("idle"); stateTicks = 200; break;
+            case "sit": case "clap": case "flex": case "bow": case "laugh": case "cry":
+            case "angry": case "love": case "think":
+                setState(cmd); stateTicks = 90; break;
+            case "sleep": setState("sleep"); stateTicks = 240; break;
             default: break;
         }
     }

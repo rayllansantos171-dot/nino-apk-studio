@@ -44,6 +44,16 @@ public class ListeningService extends Service {
     private static final Pattern P_RIGHT = Pattern.compile("\\b(direita|direito)\\b");
     private static final Pattern P_LEFT = Pattern.compile("\\b(esquerda|esquerdo)\\b");
     private static final Pattern P_RUN = Pattern.compile("\\b(corr[ae]r?|correndo)\\b");
+    private static final Pattern P_SIT = Pattern.compile("\\b(senta[r]?|sente)\\b");
+    private static final Pattern P_SLEEP = Pattern.compile("\\b(dorm[ei]r?|durma|soneca|cochil[ae]r?)\\b");
+    private static final Pattern P_CLAP = Pattern.compile("\\b(palmas|aplaud[ei]r?|aplausos)\\b");
+    private static final Pattern P_FLEX = Pattern.compile("\\b(forca|musculos?|flexion[ae]r?)\\b");
+    private static final Pattern P_BOW = Pattern.compile("\\b(reverencia|curv[ae]r?|agradece[r]?)\\b");
+    private static final Pattern P_LAUGH = Pattern.compile("\\b(rir|gargalh[ae]r?|risada|sorri[ar]?)\\b");
+    private static final Pattern P_CRY = Pattern.compile("\\b(chora[r]?|chore)\\b");
+    private static final Pattern P_ANGRY = Pattern.compile("\\b(bravo|raiva|furioso|irrite)\\b");
+    private static final Pattern P_LOVE = Pattern.compile("\\b(beijo|abraco|abracar|carinho)\\b");
+    private static final Pattern P_THINK = Pattern.compile("\\b(pensa[r]?|reflete[r]?)\\b");
     private static final Pattern P_STOP = Pattern.compile("\\b(pare|parar|quieto|parado|congela[r]?)\\b");
 
     private final Handler h = new Handler(Looper.getMainLooper());
@@ -137,7 +147,21 @@ public class ListeningService extends Service {
     private final org.vosk.android.RecognitionListener voskListener = new org.vosk.android.RecognitionListener() {
         @Override public void onPartialResult(String hypothesis) {
             final String t = jsonText(hypothesis, "partial");
-            if (t.isEmpty() || voskDone || NinoVoice.isBusy()) return;
+            if (t.isEmpty() || voskDone) return;
+            if (NinoVoice.isBusy()) {
+                // Interromper o Nino enquanto ele fala: "Nino, para" / "Nino, chega" (frase curta, para não se confundir com a própria voz).
+                final String tt = t;
+                h.post(new Runnable() { @Override public void run() {
+                    String n = Normalizer.normalize(tt, Normalizer.Form.NFD).replaceAll("\\p{M}+", "").toLowerCase(Locale.ROOT);
+                    if (WAKE.matcher(n).find() && n.trim().split("\\s+").length <= 4
+                            && n.matches(".*\\b(para|pare|chega|silencio|cala|calma)\\b.*")) {
+                        NinoVoice.stop();
+                        voskDone = true;
+                        FloatingNinoService.say("Tá bom, parei! 🤐", false);
+                    }
+                } });
+                return;
+            }
             h.post(new Runnable() { @Override public void run() {
                 if (!voskDone && tryPartial(java.util.Collections.singletonList(t))) voskDone = true;
             } });
@@ -238,7 +262,7 @@ public class ListeningService extends Service {
         for (String candidate : list) {
             String command = extractCommand(candidate);
             if (command != null && !WAKE_ONLY.equals(command)
-                    && (overlayCommand(command) != null || appHasOrder(command))) {
+                    && overlayCommand(command) != null) {
                 awaitUntil = 0;
                 heard(command);
                 deliver(command);
@@ -274,12 +298,12 @@ public class ListeningService extends Service {
                 }
                 if (!handled && following && !list.isEmpty()) {
                     // Frase seguinte ao chamado: se tem uma ordem conhecida, obedece.
-                    for (String candidate : list) {
-                        if (overlayCommand(candidate) != null || appHasOrder(candidate)) {
-                            awaitUntil = 0;
-                            deliver(candidate);
-                            break;
-                        }
+                    String first = list.get(0);
+                    if (first != null && !first.trim().isEmpty()
+                            && (overlayCommand(first) != null || first.trim().split("\\s+").length >= 2)) {
+                        awaitUntil = 0;
+                        heard(first);
+                        deliver(first);
                     }
                 }
             }
@@ -329,6 +353,16 @@ public class ListeningService extends Service {
         if (P_SPIN.matcher(n).find()) return "spin";
         if (P_DANCE.matcher(n).find()) return "dance";
         if (P_WAVE.matcher(n).find()) return "wave";
+        if (P_SIT.matcher(n).find()) return "sit";
+        if (P_SLEEP.matcher(n).find()) return "sleep";
+        if (P_CLAP.matcher(n).find()) return "clap";
+        if (P_FLEX.matcher(n).find()) return "flex";
+        if (P_BOW.matcher(n).find()) return "bow";
+        if (P_LAUGH.matcher(n).find()) return "laugh";
+        if (P_CRY.matcher(n).find()) return "cry";
+        if (P_ANGRY.matcher(n).find()) return "angry";
+        if (P_LOVE.matcher(n).find()) return "love";
+        if (P_THINK.matcher(n).find()) return "think";
         if (P_STOP.matcher(n).find()) return "stop";
         if (P_WALK.matcher(n).find()) return "walk";
         return null;
@@ -375,47 +409,34 @@ public class ListeningService extends Service {
         return null;
     }
 
-    /** Há alguma ordem que o app (não o Nino da tela) entende? Mantém em sincronia com voiceCommands.ts. */
-    private static boolean appHasOrder(String text) {
-        String n = Normalizer.normalize(text, Normalizer.Form.NFD).replaceAll("\\p{M}+", "").toLowerCase(Locale.ROOT);
-        return n.matches(".*\\b(senta[r]?|sente|dorm[ei]r?|durma|palmas|aplaud[ei]r?|forca|musculos?|reverencia|ri|rir|risada|chora[r]?|bravo|raiva|te amo|beijo|pensa[r]?)\\b.*");
-    }
-
     /** Abre o app com a frase. Sem permissão de sobreposição, mostra uma notificação para tocar. */
-    private void deliver(String command) {
-        // Com o Nino na tela (sobre outros apps), ordens simples são obedecidas ali mesmo, sem abrir o app.
+    private void deliver(final String command) {
+        // 1) Ordem de movimento/animação: o Nino da tela obedece na hora.
         String order = overlayCommand(command);
-        if (order != null && FloatingNinoService.perform(order, true)) return;
-        String reply = localReply(command);
-        if (reply != null) {
-            if (!FloatingNinoService.say(reply, true)) NinoVoice.speak(this, reply);
+        if (order != null) {
+            if (FloatingNinoService.perform(order, true)) { followUp(command); return; }
+            respond("Ative o Nino na tela para eu obedecer!");
             return;
         }
-        FloatingNinoService.say("Hmm, deixa eu ver...", false); // balão enquanto o app abre para pensar
-        Intent i = new Intent(this, MainActivity.class);
-        i.putExtra(NinoListenPlugin.EXTRA_TEXT, command);
-        i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_SINGLE_TOP | Intent.FLAG_ACTIVITY_REORDER_TO_FRONT);
-        boolean canLaunch = Build.VERSION.SDK_INT < Build.VERSION_CODES.M || Settings.canDrawOverlays(this);
-        if (canLaunch) {
-            try {
-                startActivity(i);
-                return;
-            } catch (RuntimeException ignored) { }
-        }
-        NotificationManager nm = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            nm.createNotificationChannel(new NotificationChannel(CH_HEARD, "Nino te ouviu", NotificationManager.IMPORTANCE_HIGH));
-        }
-        PendingIntent pi = PendingIntent.getActivity(this, 1, i, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
-        Notification n = new NotificationCompat.Builder(this, CH_HEARD)
-                .setContentTitle("Nino te ouviu")
-                .setContentText("Toque para ver a resposta: " + command)
-                .setSmallIcon(R.mipmap.ic_launcher)
-                .setContentIntent(pi)
-                .setAutoCancel(true)
-                .setPriority(NotificationCompat.PRIORITY_HIGH)
-                .build();
-        nm.notify(3, n);
+        // 2) Respostas rápidas que ele sabe sozinho.
+        String reply = localReply(command);
+        if (reply != null) { respond(reply); return; }
+        // 3) Conversa com a IA, em segundo plano, e responde em voz alta (sem abrir o app).
+        FloatingNinoService.say("Hmm, deixa eu ver... 🤔", false);
+        NinoAi.ask(command, new NinoAi.Callback() {
+            @Override public void done(String answer) { if (active) respond(answer); }
+        });
+    }
+
+    /** Mostra o balão e fala em voz alta; depois fica ouvindo a próxima frase sem precisar dizer "Nino". */
+    private void respond(String text) {
+        if (!FloatingNinoService.say(text, true)) NinoVoice.speak(this, text);
+        followUp(text);
+    }
+
+    /** Modo conversa (como no ChatGPT por voz): logo após responder, a próxima frase vale sem dizer "Nino". */
+    private void followUp(String spoken) {
+        awaitUntil = System.currentTimeMillis() + 9000 + Math.min(spoken.length(), 400) * 70L;
     }
 
     private Notification buildListenNotification(String text) {

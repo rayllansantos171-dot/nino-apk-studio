@@ -55,7 +55,9 @@ final class NinoVoice {
                         tts.setLanguage(Locale.getDefault());
                         warnOnce("Sem voz em português no aparelho. Instale em Configurações > Saída de texto para voz.");
                     }
+                    pickBestVoice();
                     tts.setSpeechRate(1.05f);
+                    tts.setPitch(1.1f); // um pouco mais agudo: voz de mascote
                     tts.setOnUtteranceProgressListener(new UtteranceProgressListener() {
                         @Override public void onStart(String id) { busyUntil = System.currentTimeMillis() + 60000; }
                         @Override public void onDone(String id) { busyUntil = System.currentTimeMillis() + 700; }
@@ -68,6 +70,20 @@ final class NinoVoice {
                 }
             }
         });
+    }
+
+    /** Escolhe a voz pt-BR de maior qualidade instalada (as "neurais" do Google soam bem mais naturais). */
+    private static void pickBestVoice() {
+        try {
+            android.speech.tts.Voice best = null;
+            for (android.speech.tts.Voice v : tts.getVoices()) {
+                if (v.getLocale() == null || !"pt".equals(v.getLocale().getLanguage())) continue;
+                if (!"BR".equals(v.getLocale().getCountry())) continue;
+                if (v.getFeatures() != null && v.getFeatures().contains(TextToSpeech.Engine.KEY_FEATURE_NOT_INSTALLED)) continue;
+                if (best == null || v.getQuality() > best.getQuality()) best = v;
+            }
+            if (best != null) tts.setVoice(best);
+        } catch (RuntimeException ignored) { }
     }
 
     private static void failed(Context app) {
@@ -87,7 +103,13 @@ final class NinoVoice {
 
     private static void say(Context app, String t) {
         if (tts == null) return;
-        int res = tts.speak(t, TextToSpeech.QUEUE_ADD, new Bundle(), "nino-" + System.nanoTime());
+        // Frase por frase: a primeira começa a sair antes de o resto ser processado (resposta mais rápida).
+        int res = TextToSpeech.SUCCESS;
+        for (String part : t.split("(?<=[.!?…])\\s+")) {
+            if (part.trim().isEmpty()) continue;
+            int r = tts.speak(part, TextToSpeech.QUEUE_ADD, new Bundle(), "nino-" + System.nanoTime());
+            if (r == TextToSpeech.ERROR) res = r;
+        }
         if (res == TextToSpeech.ERROR) {
             // O motor de voz morreu (por exemplo, o Google TTS foi atualizado): recria e tenta de novo.
             try { tts.shutdown(); } catch (RuntimeException ignored) { }
