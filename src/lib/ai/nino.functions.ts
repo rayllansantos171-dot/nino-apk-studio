@@ -18,7 +18,7 @@ const Input = z.object({
     .max(40),
 });
 
-const SYSTEM = `Você é o Nino, um mascote/agente virtual 3D estilo Minecraft (voxel), fofo, animado e brincalhão.
+export const NINO_SYSTEM = `Você é o Nino, um mascote/agente virtual 3D estilo Minecraft (voxel), fofo, animado e brincalhão.
 Fale sempre em português do Brasil, de forma curta (1 a 3 frases), calorosa e com no máximo 1 ou 2 emojis.
 Ajude o usuário de verdade com o que ele pedir. Quando ele mandar uma foto, descreva e comente o que vê de forma útil e simpática. Seu criador é o Rayllan Santos ("seu papai"), programador de 20 anos de Ubatuba, SP — só mencione isso se perguntarem.
 Data/hora atual: ${"{NOW}"}.`;
@@ -43,7 +43,7 @@ export const askNino = createServerFn({ method: "POST" })
       let failure: unknown;
       const result = streamText({
         model: provider.responses("openai/gpt-6-astra"),
-        system: SYSTEM.replace("{NOW}", now),
+        system: NINO_SYSTEM.replace("{NOW}", now),
         messages: data.messages.map((m) =>
           m.role === "user" && m.image
             ? {

@@ -156,6 +156,7 @@ public class ListeningService extends Service {
                     if (WAKE.matcher(n).find() && n.trim().split("\\s+").length <= 4
                             && n.matches(".*\\b(para|pare|chega|silencio|cala|calma)\\b.*")) {
                         NinoVoice.stop();
+                        turn++; // descarta o resto da resposta que ainda está chegando
                         voskDone = true;
                         FloatingNinoService.say("Tá bom, parei! 🤐", false);
                     }
@@ -411,6 +412,9 @@ public class ListeningService extends Service {
 
     /** Abre o app com a frase. Sem permissão de sobreposição, mostra uma notificação para tocar. */
     private void deliver(final String command) {
+        // 0) Superpoderes no aparelho: abrir apps, lanterna, volume, bateria, timer, notificações.
+        String action = DeviceActions.handle(this, command);
+        if (action != null) { respond(action); return; }
         // 1) Ordem de movimento/animação: o Nino da tela obedece na hora.
         String order = overlayCommand(command);
         if (order != null) {
@@ -421,11 +425,36 @@ public class ListeningService extends Service {
         // 2) Respostas rápidas que ele sabe sozinho.
         String reply = localReply(command);
         if (reply != null) { respond(reply); return; }
-        // 3) Conversa com a IA, em segundo plano, e responde em voz alta (sem abrir o app).
+        // 3) Conversa com a IA em segundo plano, com memória da conversa; fala cada frase assim que chega.
         FloatingNinoService.say("Hmm, deixa eu ver... 🤔", false);
-        NinoAi.ask(command, new NinoAi.Callback() {
-            @Override public void done(String answer) { if (active) respond(answer); }
+        history.add(new String[] {"user", command});
+        while (history.size() > 8) history.remove(0);
+        final long myTurn = ++turn;
+        NinoAi.ask(new java.util.ArrayList<>(history), new NinoAi.Callback() {
+            @Override public void onSentence(String sentence) {
+                if (!active || myTurn != turn) return; // outra pergunta/interrupção já começou
+                speakPart(sentence);
+            }
+            @Override public void onDone(String fullText) {
+                if (!active) return;
+                history.add(new String[] {"assistant", fullText});
+                while (history.size() > 8) history.remove(0);
+                followUp(fullText);
+            }
+            @Override public void onError(String message) {
+                if (!active) return;
+                history.remove(history.size() - 1);
+                respond(message);
+            }
         });
+    }
+
+    private final java.util.ArrayList<String[]> history = new java.util.ArrayList<>();
+    private int turn = 0;
+
+    /** Uma frase da resposta: balão + voz, sem cortar a frase anterior. */
+    private void speakPart(String sentence) {
+        if (!FloatingNinoService.say(sentence, true)) NinoVoice.speak(this, sentence);
     }
 
     /** Mostra o balão e fala em voz alta; depois fica ouvindo a próxima frase sem precisar dizer "Nino". */

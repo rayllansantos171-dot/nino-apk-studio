@@ -7,7 +7,8 @@ export type PermKey =
   | "microphone"
   | "camera"
   | "vibration"
-  | "background";
+  | "background"
+  | "notifAccess";
 
 /** true = permitida, false = não permitida, null = não se aplica fora do app Android. */
 export type PermStatus = Record<PermKey, boolean | null>;
@@ -48,6 +49,7 @@ export async function getPermissionStatus(): Promise<PermStatus> {
     camera: await webState("camera"),
     vibration: typeof navigator !== "undefined" && "vibrate" in navigator ? true : null,
     background: null,
+    notifAccess: null,
   };
 }
 

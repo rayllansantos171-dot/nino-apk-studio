@@ -52,6 +52,7 @@ public class NinoPermissionsPlugin extends Plugin {
         r.put("camera", getPermissionState("camera") == PermissionState.GRANTED);
         r.put("vibration", true);  // permissão normal: já vem concedida na instalação
         r.put("background", batteryFree());
+        r.put("notifAccess", NinoNotificationListener.enabled(getContext()));
         return r;
     }
 
@@ -100,6 +101,12 @@ public class NinoPermissionsPlugin extends Plugin {
             case "background":
                 if (!batteryFree()) {
                     launch(new Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS, Uri.parse("package:" + pkg())));
+                }
+                call.resolve(snapshot());
+                break;
+            case "notifAccess":
+                if (!NinoNotificationListener.enabled(getContext())) {
+                    launch(new Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS));
                 }
                 call.resolve(snapshot());
                 break;

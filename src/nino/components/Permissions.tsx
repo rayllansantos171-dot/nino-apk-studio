@@ -16,6 +16,7 @@ const ITEMS: Item[] = [
   { key: "microphone", title: "Microfone", desc: "Ouvir “Nino” e as suas ordens por voz", Icon: IconMic },
   { key: "camera", title: "Câmera", desc: "Tirar fotos para mostrar ao Nino", Icon: IconCamera },
   { key: "vibration", title: "Vibração", desc: "Reações e toques do Nino", Icon: IconBolt },
+  { key: "notifAccess", title: "Ler notificações", desc: "Para o Nino ler suas notificações em voz alta, só quando você pedir", Icon: IconBell },
   { key: "background", title: "Segundo plano", desc: "Manter o Nino ligado com a tela apagada", Icon: IconShield },
 ];
 
