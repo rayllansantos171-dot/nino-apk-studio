@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import Nino from "./Nino";
 import DefendScene from "./DefendScene";
-import { IconBack, IconCamera, IconClose, IconImage, IconSend } from "./Icons";
+import { IconBack, IconCamera, IconClose, IconFile, IconImage, IconMic, IconSend } from "./Icons";
 import { SCENE_LINES, respond, Weapon } from "../utils/replies";
 import { playBang, playHit, playPop, playSend, playThud, vibrate } from "../utils/sound";
 import { useSettings } from "../utils/SettingsContext";
@@ -9,6 +9,8 @@ import { askNino } from "@/lib/ai/nino.functions";
 import { withTimeout } from "../utils/withTimeout";
 import { fileToDataUrl } from "../utils/image";
 import { speak } from "../utils/speak";
+import { dictate } from "../utils/nativeListen";
+import { extractDocument, type ExtractedDoc } from "../utils/pdf";
 
 interface Msg {
   id: number;
@@ -16,11 +18,22 @@ interface Msg {
   text: string;
   time: string;
   image?: string | undefined;
+  docName?: string | undefined;
 }
 
 const now = () => new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
 
 const SUGGESTIONS = ["Qual seu propósito?", "Me conta uma piada", "Que horas são?"];
+const DOC_SUGGESTIONS = ["Corrigir o texto", "Resumir", "Explicar em palavras simples"];
+
+const copyText = async (t: string) => {
+  try {
+    await navigator.clipboard.writeText(t);
+    return true;
+  } catch {
+    return false;
+  }
+};
 
 export default function Chat({
   onBack,
@@ -46,6 +59,51 @@ export default function Chat({
   const cameraRef = useRef<HTMLInputElement>(null);
   const speakRef = useRef(false);
   const voiceRef = useRef<string | null>(null);
+  const pdfRef = useRef<HTMLInputElement>(null);
+  const [pendingDoc, setPendingDoc] = useState<ExtractedDoc | null>(null);
+  const [readingDoc, setReadingDoc] = useState(false);
+  const [listening, setListening] = useState(false);
+  const [copiedId, setCopiedId] = useState<number | null>(null);
+
+  const say = (text: string) =>
+    setMessages((m) => [...m, { id: idRef.current++, from: "nino", text, time: now() }]);
+
+  const pickDoc = async (file?: File | null) => {
+    if (!file) return;
+    setReadingDoc(true);
+    try {
+      const doc = await extractDocument(file);
+      if (doc.text.trim().length < 5) {
+        say("Não achei texto nesse arquivo. Se for um PDF escaneado (foto de página), tira uma foto da página e me manda como imagem. 📷");
+      } else {
+        setPendingDoc(doc);
+      }
+    } catch {
+      say("Não consegui abrir esse PDF. Ele pode estar protegido ou corrompido. Tenta outro? 📄");
+    } finally {
+      setReadingDoc(false);
+    }
+  };
+
+  const startDictation = async () => {
+    if (listening || typing) return;
+    setListening(true);
+    try {
+      const text = await dictate();
+      if (text) send(text, null, true);
+    } catch (e) {
+      say(e instanceof Error && e.message ? e.message + " 🎤" : "Não consegui ouvir agora. Tenta de novo! 🎤");
+    } finally {
+      setListening(false);
+    }
+  };
+
+  const copyMsg = async (m: Msg) => {
+    if (await copyText(m.text)) {
+      setCopiedId(m.id);
+      window.setTimeout(() => setCopiedId((c) => (c === m.id ? null : c)), 1500);
+    }
+  };
 
   useEffect(() => {
     // Rola só a lista de mensagens (scrollIntoView também empurrava a página inteira e quebrava o layout com o teclado).
@@ -78,8 +136,8 @@ export default function Chat({
     }
   };
 
-  const send = (text: string, image: string | null = null, fromVoice = false) => {
-    const clean = text.trim() || (image ? "O que você vê nessa foto?" : "");
+  const send = (text: string, image: string | null = null, fromVoice = false, doc: ExtractedDoc | null = null) => {
+    const clean = text.trim() || (image ? "O que você vê nessa foto?" : doc ? "Corrija este texto." : "");
     if (!clean || typing) return;
     speakRef.current = fromVoice;
     if (settings.soundVibration) {
@@ -87,20 +145,22 @@ export default function Chat({
       vibrate(15);
     }
     const local = respond(clean);
-    const useLocal = !image && (!!local.defend || local.text.includes("Rayllan"));
-    const history = [...messages.slice(1), { from: "user" as const, text: clean, image: image ?? undefined }]
+    const useLocal = !image && !doc && (!!local.defend || local.text.includes("Rayllan"));
+    const history = [...messages.slice(1), { from: "user" as const, text: clean, image: image ?? undefined, docName: undefined as string | undefined }]
       .slice(-20)
       .map((m, i, arr) => ({
         role: m.from === "user" ? ("user" as const) : ("assistant" as const),
         content: m.image && i < arr.length - 1 ? `${m.text} [foto enviada]` : m.text,
         ...(m.image && i === arr.length - 1 ? { image: m.image } : {}),
+        ...(doc && i === arr.length - 1 ? { document: doc.text } : {}),
       }));
     setMessages((m) => [
       ...m,
-      { id: idRef.current++, from: "user", text: clean, time: now(), image: image ?? undefined },
+      { id: idRef.current++, from: "user", text: clean, time: now(), image: image ?? undefined, docName: doc?.name },
     ]);
     setInput("");
     setPendingImage(null);
+    setPendingDoc(null);
     setTyping(true);
     const deliver = (text: string, defend?: Weapon) => {
       if (defend) {
@@ -111,19 +171,29 @@ export default function Chat({
       setMessages((m) => [...m, { id: idRef.current++, from: "nino", text, time: now() }]);
       setTyping(false);
       if (settings.soundVibration && !defend) playPop();
-      if (speakRef.current) speak(text);
+      if (speakRef.current && !doc) speak(text);
     };
     const offline = typeof navigator !== "undefined" && navigator.onLine === false;
     if (useLocal || offline) {
-      const offlineText = image
+      const offlineText = doc
+        ? "Estou sem internet e não consigo corrigir documentos agora. Tenta de novo quando voltar! 📶"
+        : image
         ? "Estou sem internet e não consigo ver fotos agora. Tenta de novo quando voltar! 📶"
         : local.text;
       window.setTimeout(() => deliver(offlineText, local.defend), local.defend ? 450 : 700);
       return;
     }
-    withTimeout(askNino({ data: { messages: history } }), 25000)
-      .then((r) => deliver(r.ok ? r.text : image ? r.error : local.text))
-      .catch(() => deliver(image ? "Não consegui ver a foto agora. Tenta de novo! 📷" : local.text));
+    withTimeout(askNino({ data: { messages: history } }), doc ? 70000 : 25000)
+      .then((r) => deliver(r.ok ? r.text : image || doc ? r.error : local.text))
+      .catch(() =>
+        deliver(
+          doc
+            ? "Demorei demais para ler o documento. Tenta de novo ou manda um trecho menor! 📄"
+            : image
+            ? "Não consegui ver a foto agora. Tenta de novo! 📷"
+            : local.text,
+        ),
+      );
   };
 
   // Pergunta feita por voz (o Nino ouviu em segundo plano): responde no chat e lê a resposta.
@@ -164,8 +234,19 @@ export default function Chat({
             )}
             <div className={`bubble ${m.from}`}>
               {m.image && <img className="bubble-img" src={m.image} alt="Foto enviada" />}
-              <p>{m.text}</p>
+              {m.docName && (
+                <div className="doc-chip in-bubble">
+                  <IconFile size={16} />
+                  <span>{m.docName}</span>
+                </div>
+              )}
+              <p className="bubble-text">{m.text}</p>
               <time>{m.time}</time>
+              {m.from === "nino" && m.id !== 1 && m.text.length > 40 && (
+                <button type="button" className="copy-btn" onClick={() => void copyMsg(m)}>
+                  {copiedId === m.id ? "Copiado ✓" : "Copiar"}
+                </button>
+              )}
             </div>
           </div>
         ))}
@@ -186,8 +267,8 @@ export default function Chat({
 
       <div className="chat-footer">
         <div className="suggestions">
-          {SUGGESTIONS.map((s) => (
-            <button key={s} className="chip" onClick={() => send(s)}>
+          {(pendingDoc ? DOC_SUGGESTIONS : SUGGESTIONS).map((s) => (
+            <button key={s} className="chip" onClick={() => send(s, null, false, pendingDoc)}>
               {s}
             </button>
           ))}
@@ -200,11 +281,28 @@ export default function Chat({
             </button>
           </div>
         )}
+        {(pendingDoc || readingDoc) && (
+          <div className="doc-chip">
+            <IconFile size={16} />
+            {pendingDoc ? (
+              <span>
+                {pendingDoc.name} · {pendingDoc.pages} pág.{pendingDoc.truncated ? " (só o começo)" : ""}
+              </span>
+            ) : (
+              <span>Lendo o PDF…</span>
+            )}
+            {pendingDoc && (
+              <button type="button" className="attach-remove" onClick={() => setPendingDoc(null)} aria-label="Remover documento">
+                <IconClose size={14} />
+              </button>
+            )}
+          </div>
+        )}
         <form
           className="chat-input"
           onSubmit={(e) => {
             e.preventDefault();
-            send(input, pendingImage);
+            send(input, pendingImage, false, pendingDoc);
           }}
         >
           <input
@@ -235,14 +333,39 @@ export default function Chat({
             <IconCamera size={20} />
           </button>
           <input
+            ref={pdfRef}
+            type="file"
+            accept="application/pdf,.pdf,text/plain,.txt"
+            hidden
+            onChange={(e) => {
+              void pickDoc(e.target.files?.[0]);
+              e.target.value = "";
+            }}
+          />
+          <button type="button" className="attach-btn" onClick={() => pdfRef.current?.click()} aria-label="Enviar PDF para corrigir" disabled={readingDoc}>
+            <IconFile size={20} />
+          </button>
+          <input
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            placeholder="Digite sua mensagem..."
+            placeholder={listening ? "Ouvindo…" : pendingDoc ? "O que fazer com o PDF?" : "Digite sua mensagem..."}
             aria-label="Mensagem"
           />
-          <button type="submit" className="send-btn" aria-label="Enviar" disabled={!input.trim() && !pendingImage}>
-            <IconSend />
-          </button>
+          {input.trim() || pendingImage || pendingDoc ? (
+            <button type="submit" className="send-btn" aria-label="Enviar">
+              <IconSend />
+            </button>
+          ) : (
+            <button
+              type="button"
+              className={`send-btn mic-btn ${listening ? "on" : ""}`}
+              aria-label="Falar"
+              onClick={() => void startDictation()}
+              disabled={listening}
+            >
+              <IconMic />
+            </button>
+          )}
         </form>
       </div>
 

@@ -8,6 +8,7 @@ interface NinoListenPlugin {
   speak(options: { text: string }): Promise<void>;
   stopSpeaking(): Promise<void>;
   isRunning(): Promise<{ running: boolean }>;
+  dictate(): Promise<{ text: string }>;
   addListener(event: "voiceCommand", cb: (e: { text: string }) => void): Promise<PluginListenerHandle>;
 }
 
@@ -75,4 +76,54 @@ export async function nativeSpeak(text: string): Promise<boolean> {
 export function nativeStopSpeaking() {
   if (!native()) return;
   NinoListen.stopSpeaking().catch(() => {});
+}
+
+/**
+ * Ditado para o chat: fala → texto. No app usa o reconhecimento do Android (pausa a escuta em
+ * segundo plano para liberar o microfone); no navegador usa o reconhecimento do navegador.
+ * Devolve "" se a pessoa não falou nada; lança erro se o aparelho não suporta.
+ */
+export async function dictate(): Promise<string> {
+  if (native()) {
+    const wasOn = await getNativeListening();
+    if (wasOn) {
+      await NinoListen.stop().catch(() => {});
+      await new Promise((r) => setTimeout(r, 400));
+    }
+    try {
+      const { granted } = await NinoListen.hasPermission();
+      if (!granted) {
+        const r = await NinoListen.requestPermission();
+        if (!r.granted) throw new Error("Permita o microfone para falar no chat");
+      }
+      return ((await NinoListen.dictate()).text || "").trim();
+    } finally {
+      if (wasOn) await NinoListen.start().catch(() => {});
+    }
+  }
+  type Rec = {
+    lang: string;
+    interimResults: boolean;
+    onresult: ((e: { results: ArrayLike<ArrayLike<{ transcript: string }>> }) => void) | null;
+    onerror: ((e: { error?: string }) => void) | null;
+    onend: (() => void) | null;
+    start(): void;
+  };
+  const w = window as unknown as { SpeechRecognition?: new () => Rec; webkitSpeechRecognition?: new () => Rec };
+  const Ctor = w.SpeechRecognition ?? w.webkitSpeechRecognition;
+  if (!Ctor) throw new Error("Este navegador não tem reconhecimento de voz");
+  return new Promise<string>((resolve, reject) => {
+    const rec = new Ctor();
+    let text = "";
+    rec.lang = "pt-BR";
+    rec.interimResults = false;
+    rec.onresult = (e) => {
+      text = e.results[0]?.[0]?.transcript ?? "";
+    };
+    rec.onerror = (e) => {
+      if (e.error && e.error !== "no-speech" && e.error !== "aborted") reject(new Error("Não consegui ouvir: " + e.error));
+    };
+    rec.onend = () => resolve(text.trim());
+    rec.start();
+  });
 }

@@ -11,7 +11,11 @@ import com.getcapacitor.PluginCall;
 import com.getcapacitor.PluginMethod;
 import com.getcapacitor.annotation.CapacitorPlugin;
 import com.getcapacitor.annotation.Permission;
+import com.getcapacitor.annotation.ActivityCallback;
 import com.getcapacitor.annotation.PermissionCallback;
+import android.app.Activity;
+import android.speech.RecognizerIntent;
+import java.util.ArrayList;
 
 /** Ponte JS -> nativo para a escuta em segundo plano (só roda quando a pessoa liga). */
 @CapacitorPlugin(
@@ -109,6 +113,33 @@ public class NinoListenPlugin extends Plugin {
     public void isRunning(PluginCall call) {
         JSObject r = new JSObject();
         r.put("running", ListeningService.running);
+        call.resolve(r);
+    }
+
+    /** Ditado: abre o reconhecimento de fala do Android e devolve o texto falado. */
+    @PluginMethod
+    public void dictate(PluginCall call) {
+        Intent i = new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
+        i.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM);
+        i.putExtra(RecognizerIntent.EXTRA_LANGUAGE, "pt-BR");
+        i.putExtra(RecognizerIntent.EXTRA_PROMPT, "Fale agora");
+        try {
+            startActivityForResult(call, i, "dictateResult");
+        } catch (Exception e) {
+            call.reject("Sem reconhecimento de voz neste aparelho");
+        }
+    }
+
+    @ActivityCallback
+    private void dictateResult(PluginCall call, androidx.activity.result.ActivityResult result) {
+        if (call == null) return;
+        JSObject r = new JSObject();
+        String text = "";
+        if (result.getResultCode() == Activity.RESULT_OK && result.getData() != null) {
+            ArrayList<String> list = result.getData().getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS);
+            if (list != null && !list.isEmpty()) text = list.get(0);
+        }
+        r.put("text", text);
         call.resolve(r);
     }
 }

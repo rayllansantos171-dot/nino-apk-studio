@@ -380,3 +380,14 @@ h1, h2, h3, p { margin: 0; }
 @keyframes splashIn { from { opacity: 0; transform: scale(.92); } to { opacity: 1; transform: none; } }
 
 .splash { justify-content: center; gap: 24px; }
+
+/* ===== Chat: PDF, ditado, copiar ===== */
+.bubble-text { white-space: pre-wrap; overflow-wrap: anywhere; word-break: break-word; }
+.doc-chip { display: flex; align-items: center; gap: 8px; margin: 0 0 8px; padding: 8px 10px; border-radius: 12px; font-size: 13px; color: var(--accent-soft); background: color-mix(in srgb, var(--accent) 14%, transparent); border: 1px solid var(--line-strong); position: relative; max-width: 100%; }
+.doc-chip span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding-right: 14px; }
+.doc-chip.in-bubble { color: inherit; margin-bottom: 6px; background: rgba(255,255,255,.14); }
+.copy-btn { display: block; margin-top: 6px; padding: 4px 10px; font-size: 12px; border-radius: 8px; color: var(--accent-soft); border: 1px solid var(--line-strong); background: transparent; }
+.mic-btn.on { animation: micPulse 1s infinite; }
+@keyframes micPulse { 50% { box-shadow: 0 0 0 6px color-mix(in srgb, var(--accent) 30%, transparent); } }
+.attach-btn:disabled { opacity: .4; }
+.chat-input { gap: 2px; }
