@@ -33,12 +33,13 @@ jobs:
       - name: Instalar dependências
         run: npm install --legacy-peer-deps --ignore-scripts --no-audit --no-fund
 
-      - name: Checar tipos do TypeScript (só avisa)
-        continue-on-error: true
+      - name: Checar tipos do TypeScript (trava o APK se houver erro)
         run: |
-          npx tsc --noEmit --pretty false > tsc.log 2>&1 || true
-          echo "Erros de tipo: $(grep -c 'error TS' tsc.log || true)"
-          grep 'error TS' tsc.log | head -30 | while read -r l; do echo "::warning::$l"; done
+          npx tsc --noEmit --pretty false 2>&1 | tee tsc.log || true
+          n=$(grep -c 'error TS' tsc.log || true)
+          echo "Erros de tipo: $n"
+          grep 'error TS' tsc.log | head -30 | while read -r l; do echo "::error::$l"; done
+          [ "$n" -eq 0 ]
 
       - name: Sincronizar projeto Android
         run: npx cap sync android

@@ -15,6 +15,8 @@ interface Ctx {
   reset: () => void;
 }
 
+let lastTheme = "";
+
 const SettingsContext = createContext<Ctx | null>(null);
 
 export function SettingsProvider({ children }: { children: React.ReactNode }) {
@@ -27,7 +29,11 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
     root.style.setProperty("--accent", t.accent);
     root.style.setProperty("--accent-2", t.accent2);
     root.style.setProperty("--accent-soft", t.soft);
-    void setNativeOverlayTheme(t.accent, t.accent2, t.soft);
+    const themeKey = t.accent + t.accent2 + t.soft;
+    if (themeKey !== lastTheme) {
+      lastTheme = themeKey;
+      void setNativeOverlayTheme(t.accent, t.accent2, t.soft);
+    }
     root.dataset.glow = settings.glow ? "on" : "off";
   }, [settings]);
 
