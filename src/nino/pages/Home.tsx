@@ -115,7 +115,9 @@ export default function Home({
                 const running = await setNativeListening(true);
                 update({ listening: running });
               }
-              await setNativeOverlay(next, settings.skin);
+              const on = await setNativeOverlay(next, settings.skin);
+              // Se a permissão não foi liberada, o botão volta para "ATIVAR NA TELA" em vez de travar.
+              if (on !== next) update({ floating: on, onScreen: on });
             })();
           }}
         >

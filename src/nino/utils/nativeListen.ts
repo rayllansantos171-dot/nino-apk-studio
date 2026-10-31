@@ -59,9 +59,19 @@ export function onVoiceCommand(cb: (text: string) => void): () => void {
   };
 }
 
-/** Fala com a voz nativa do Android (o WebView quase nunca tem voz própria). false se não for o app. */
+/** Fala com a voz nativa do Android (o WebView quase nunca tem voz própria). false se não for o app.
+ *  Corta a fala anterior antes, para as respostas não se sobreporem. */
 export function nativeSpeak(text: string): boolean {
   if (!native()) return false;
-  NinoListen.speak({ text }).catch(() => {});
+  NinoListen.stopSpeaking()
+    .catch(() => {})
+    .then(() => NinoListen.speak({ text }))
+    .catch(() => {});
   return true;
+}
+
+/** Para a voz nativa na hora. */
+export function nativeStopSpeaking() {
+  if (!native()) return;
+  NinoListen.stopSpeaking().catch(() => {});
 }
