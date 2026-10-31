@@ -19,7 +19,43 @@ type View = "splash" | "agente" | "aparencia" | "ajustes" | "chat" | "loja";
 
 const STARTED_KEY = "nino-ai-started";
 
+/** Mantém a altura do app igual à área visível (com teclado aberto ou fechado) e a página sempre no topo. */
+function useViewportFit() {
+  useEffect(() => {
+    const root = document.documentElement;
+    let timer = 0;
+    const fit = () => {
+      const h = window.visualViewport?.height ?? window.innerHeight;
+      root.style.setProperty("--app-h", `${Math.round(h)}px`);
+      if (window.scrollY !== 0 || document.scrollingElement?.scrollTop) window.scrollTo(0, 0);
+    };
+    const settle = () => {
+      fit();
+      window.clearTimeout(timer);
+      timer = window.setTimeout(fit, 250); // o teclado termina de abrir/fechar depois do primeiro evento
+    };
+    fit();
+    const vv = window.visualViewport;
+    window.addEventListener("resize", settle);
+    window.addEventListener("scroll", fit);
+    window.addEventListener("focusin", settle);
+    window.addEventListener("focusout", settle);
+    vv?.addEventListener("resize", settle);
+    vv?.addEventListener("scroll", fit);
+    return () => {
+      window.clearTimeout(timer);
+      window.removeEventListener("resize", settle);
+      window.removeEventListener("scroll", fit);
+      window.removeEventListener("focusin", settle);
+      window.removeEventListener("focusout", settle);
+      vv?.removeEventListener("resize", settle);
+      vv?.removeEventListener("scroll", fit);
+    };
+  }, []);
+}
+
 function Shell() {
+  useViewportFit();
   const { settings, update } = useSettings();
   const [view, setView] = useState<View>(() => {
     try {

@@ -4,6 +4,8 @@
 
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 html, body, #root { height: 100%; margin: 0; }
+/* A página nunca rola sozinha: só as listas internas. Evita o layout "subir" quando o teclado abre. */
+html, body { position: fixed; inset: 0; width: 100%; overflow: hidden; }
 body {
   background: #030208;
   color: var(--text);
@@ -19,7 +21,7 @@ h1, h2, h3, p { margin: 0; }
   position: relative;
   width: 100%;
   max-width: 430px;
-  height: 100dvh;
+  height: var(--app-h, 100dvh);
   margin: 0 auto;
   display: flex;
   flex-direction: column;
@@ -30,7 +32,7 @@ h1, h2, h3, p { margin: 0; }
 }
 @media (min-width: 520px) {
   .app-shell {
-    height: min(100dvh - 32px, 880px);
+    height: min(var(--app-h, 100dvh) - 32px, 880px);
     margin-top: 16px;
     border-radius: 34px;
     border: 1px solid var(--line);
@@ -99,7 +101,7 @@ h1, h2, h3, p { margin: 0; }
 .subtitle { margin-top: 8px; color: var(--accent-soft); font-weight: 600; font-size: 18px; }
 .hero { position: relative; display: flex; flex-direction: column; align-items: center; margin-top: 4px; }
 .hero-nino { display: grid; place-items: center; }
-.hero-speech { position: absolute; right: 0; top: 18px; }
+.hero-speech { position: relative; margin-bottom: 8px; align-self: center; }
 .status-pill {
   display: flex; align-items: center; gap: 8px; padding: 9px 16px; margin-top: 4px;
   border-radius: 999px; border: 1px solid var(--line-strong); background: color-mix(in srgb, var(--card) 85%, transparent);

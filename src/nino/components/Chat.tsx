@@ -38,6 +38,7 @@ export default function Chat({
   const [input, setInput] = useState("");
   const [typing, setTyping] = useState(false);
   const [scene, setScene] = useState<{ weapon: Weapon; line: string } | null>(null);
+  const bodyRef = useRef<HTMLDivElement>(null);
   const endRef = useRef<HTMLDivElement>(null);
   const idRef = useRef(2);
   const [pendingImage, setPendingImage] = useState<string | null>(null);
@@ -47,7 +48,9 @@ export default function Chat({
   const voiceRef = useRef<string | null>(null);
 
   useEffect(() => {
-    endRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
+    // Rola só a lista de mensagens (scrollIntoView também empurrava a página inteira e quebrava o layout com o teclado).
+    const body = bodyRef.current;
+    if (body) body.scrollTo({ top: body.scrollHeight, behavior: "smooth" });
   }, [messages, typing]);
 
   const closeScene = useCallback(() => setScene(null), []);
@@ -151,7 +154,7 @@ export default function Chat({
         </div>
       </header>
 
-      <div className="chat-body">
+      <div className="chat-body" ref={bodyRef}>
         {messages.map((m) => (
           <div key={m.id} className={`msg-row ${m.from}`}>
             {m.from === "nino" && (
