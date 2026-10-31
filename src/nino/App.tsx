@@ -7,6 +7,11 @@ import SettingsPage from "./pages/SettingsPage";
 import SkinShopPage from "./pages/SkinShopPage";
 import FloatingAgent from "./components/FloatingAgent";
 import { onVoiceCommand } from "./utils/nativeListen";
+import { isNativeAndroid, nativeOverlaySay } from "./utils/nativeOverlay";
+import { askNino } from "@/lib/ai/nino.functions";
+import { withTimeout } from "./utils/withTimeout";
+import { respond } from "./utils/replies";
+import { speak } from "./utils/speak";
 import { matchCommands } from "./utils/voiceCommands";
 import { IconAgent, IconPalette, IconSettings } from "./components/Icons";
 
@@ -40,6 +45,24 @@ function Shell() {
           return;
         }
         const cmds = matchCommands(text);
+        if (isNativeAndroid()) {
+          // No Android o Nino que anda é o da tela (nativo); o do app não é duplicado. Aqui só responde a conversa.
+          if (cmds.length) {
+            const msg = "Ative o Nino na tela para eu obedecer!";
+            speak(msg);
+            void nativeOverlaySay(msg);
+            return;
+          }
+          const local = respond(text).text;
+          const finish = (reply: string) => {
+            speak(reply);
+            void nativeOverlaySay(reply);
+          };
+          withTimeout(askNino({ data: { messages: [{ role: "user", content: text }] } }), 25000)
+            .then((r) => finish(r.ok ? r.text : local))
+            .catch(() => finish(local));
+          return;
+        }
         const fire = () => window.dispatchEvent(new CustomEvent("nino-voice", { detail: { text, cmds } }));
         const s = settingsRef.current;
         if (s.floating && s.onScreen && viewRef.current !== "splash") {
@@ -91,7 +114,8 @@ function Shell() {
   };
 
   const showNav = view !== "splash" && view !== "chat";
-  const showFloating = settings.floating && settings.onScreen && view !== "splash";
+  // No Android o Nino que anda é o nativo (sobre outros apps); o do app só existe no navegador.
+  const showFloating = settings.floating && settings.onScreen && view !== "splash" && !isNativeAndroid();
 
   return (
     <div className="app-shell">

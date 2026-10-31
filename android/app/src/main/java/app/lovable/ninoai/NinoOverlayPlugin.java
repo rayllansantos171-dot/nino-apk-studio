@@ -62,6 +62,19 @@ public class NinoOverlayPlugin extends Plugin {
     }
 
     @PluginMethod
+    public void setTheme(PluginCall call) {
+        FloatingNinoService.setTheme(call.getString("accent"), call.getString("accent2"), call.getString("soft"));
+        call.resolve();
+    }
+
+    /** Mostra um balão de fala no Nino da tela (usado quando o app responde uma pergunta por voz). */
+    @PluginMethod
+    public void say(PluginCall call) {
+        FloatingNinoService.say(call.getString("text", ""), false);
+        call.resolve();
+    }
+
+    @PluginMethod
     public void setSkin(PluginCall call) {
         FloatingNinoService.setSkin(call.getString("skin", "padrao"));
         call.resolve();

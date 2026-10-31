@@ -302,6 +302,7 @@ body.happy .eyes-happy{display:inline} body.happy .eyes-normal{display:none}
 <g class="nino-halo"><rect x="42" y="-9" width="36" height="3" fill="#ffe27a"/><rect x="42" y="-9" width="36" height="1" fill="#fff6c8"/><rect x="42" y="-2" width="36" height="3" fill="#f2b632"/><rect x="37" y="-6" width="5" height="5" fill="#ffd24d"/><rect x="78" y="-6" width="5" height="5" fill="#ffd24d"/></g>
 </g></g></svg></div></div>
 <script>
+window.setTheme=function(a,b,c){var r=document.documentElement.style;r.setProperty('--accent',a);r.setProperty('--accent-2',b);r.setProperty('--accent-soft',c)};
 window.setSkin=function(k){document.body.classList.toggle('anjo',k==='anjo')};
 setSkin((location.hash||'').slice(1));
 var HAPPY={jump:1,backflip:1,dance:1,wave:1,spin:1};

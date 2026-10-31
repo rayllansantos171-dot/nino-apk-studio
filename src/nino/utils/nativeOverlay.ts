@@ -7,6 +7,8 @@ interface NinoOverlayPlugin {
   setSkin(options: { skin: string }): Promise<void>;
   stop(): Promise<void>;
   isRunning(): Promise<{ running: boolean }>;
+  setTheme(options: { accent: string; accent2: string; soft: string }): Promise<void>;
+  say(options: { text: string }): Promise<void>;
 }
 
 const NinoOverlay = registerPlugin<NinoOverlayPlugin>("NinoOverlay");
@@ -89,6 +91,26 @@ export async function setNativeOverlaySkin(skin: string) {
   wantSkin = skin;
   try {
     await NinoOverlay.setSkin({ skin });
+  } catch {
+    /* ignore */
+  }
+}
+
+/** Passa a cor do tema (roxo, rosa, azul, verde) para o Nino que fica sobre outros apps. */
+export async function setNativeOverlayTheme(accent: string, accent2: string, soft: string) {
+  if (!isNativeAndroid()) return;
+  try {
+    await NinoOverlay.setTheme({ accent, accent2, soft });
+  } catch {
+    /* APK antigo sem essa função */
+  }
+}
+
+/** Mostra um balão de fala no Nino que está sobre outros apps. */
+export async function nativeOverlaySay(text: string) {
+  if (!isNativeAndroid()) return;
+  try {
+    await NinoOverlay.say({ text });
   } catch {
     /* ignore */
   }

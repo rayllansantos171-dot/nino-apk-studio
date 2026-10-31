@@ -7,6 +7,7 @@ import {
   loadSettings,
   saveSettings,
 } from "./settings";
+import { setNativeOverlayTheme } from "./nativeOverlay";
 
 interface Ctx {
   settings: Settings;
@@ -26,6 +27,7 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
     root.style.setProperty("--accent", t.accent);
     root.style.setProperty("--accent-2", t.accent2);
     root.style.setProperty("--accent-soft", t.soft);
+    void setNativeOverlayTheme(t.accent, t.accent2, t.soft);
     root.dataset.glow = settings.glow ? "on" : "off";
   }, [settings]);
 

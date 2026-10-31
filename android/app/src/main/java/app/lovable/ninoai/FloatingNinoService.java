@@ -23,6 +23,7 @@ import android.view.MotionEvent;
 import android.view.View;
 import android.view.WindowManager;
 import android.webkit.WebView;
+import android.webkit.WebViewClient;
 import androidx.core.app.NotificationCompat;
 import java.util.Random;
 
@@ -54,6 +55,34 @@ public class FloatingNinoService extends Service {
     static volatile boolean running = false;
     private static volatile FloatingNinoService instance;
     private static volatile String skin = "padrao";
+    private static volatile String themeAccent = "#a855f7";
+    private static volatile String themeAccent2 = "#7c3aed";
+    private static volatile String themeSoft = "#d8b4fe";
+
+    private static String hex(String v, String fallback) {
+        return v != null && v.matches("#[0-9a-fA-F]{6}") ? v : fallback;
+    }
+
+    /** Cor do tema escolhido nos Ajustes: o Nino da tela e o balão passam a usar a mesma cor do app. */
+    static void setTheme(String accent, String accent2, String soft) {
+        themeAccent = hex(accent, themeAccent);
+        themeAccent2 = hex(accent2, themeAccent2);
+        themeSoft = hex(soft, themeSoft);
+        final FloatingNinoService s = instance;
+        if (s != null) {
+            s.h.post(new Runnable() { @Override public void run() { s.applyTheme(); } });
+        }
+    }
+
+    private void applyTheme() {
+        if (web != null) {
+            web.evaluateJavascript("window.setTheme&&setTheme('" + themeAccent + "','" + themeAccent2 + "','" + themeSoft + "')", null);
+        }
+        if (bubble != null && bubble.getBackground() instanceof GradientDrawable) {
+            ((GradientDrawable) bubble.getBackground()).setStroke(
+                    (int) (2 * getResources().getDisplayMetrics().density), Color.parseColor(themeAccent));
+        }
+    }
 
     /** Skin do Nino na tela ("padrao" ou "anjo"). Vale na hora se ele já está na tela. */
     static void setSkin(String value) {
@@ -135,7 +164,7 @@ public class FloatingNinoService extends Service {
         bubble.setPadding((int) (12 * d), (int) (8 * d), (int) (12 * d), (int) (8 * d));
         GradientDrawable bg = new GradientDrawable();
         bg.setColor(Color.parseColor("#EE1B1430"));
-        bg.setStroke((int) (2 * d), Color.parseColor("#A855F7"));
+        bg.setStroke((int) (2 * d), Color.parseColor(themeAccent));
         bg.setCornerRadius(14 * d);
         bubble.setBackground(bg);
         bubble.setVisibility(View.GONE);
@@ -202,6 +231,9 @@ public class FloatingNinoService extends Service {
         web = view.findViewById(R.id.nino_web);
         web.setBackgroundColor(Color.TRANSPARENT);
         web.getSettings().setJavaScriptEnabled(true);
+        web.setWebViewClient(new WebViewClient() {
+            @Override public void onPageFinished(WebView v, String url) { applyTheme(); }
+        });
         web.loadUrl("file:///android_asset/public/nino-overlay.html#" + skin);
         sizePx = (int) (110 * getResources().getDisplayMetrics().density);
         heightPx = (int) (150 * getResources().getDisplayMetrics().density);
