@@ -75,6 +75,8 @@ function ErrorComponent({ error, reset }: ErrorComponentProps) {
 
 export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
   head: () => ({
+    // Fundo escuro desde o primeiro quadro (evita o flash branco ao abrir o app)
+    styles: [{ children: 'html,body{background:#07040f}' }],
     meta: [
       { charSet: 'utf-8' },
       { name: 'viewport', content: 'width=device-width, initial-scale=1' },

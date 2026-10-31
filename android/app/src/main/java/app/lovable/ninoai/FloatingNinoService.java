@@ -46,6 +46,7 @@ public class FloatingNinoService extends Service {
     private WindowManager.LayoutParams blp;
     private long bubbleUntil = 0;
     private long lastTapAt = 0;
+    private int lastX = Integer.MIN_VALUE, lastY = Integer.MIN_VALUE;
     private static final String[] CHATTER = {
             "Que dia lindo! ☀️", "Tô de olho em tudo por aqui 👀", "Me chama de Nino que eu obedeço!",
             "Já tomou água hoje? 💧", "Me arrasta pra onde quiser!", "Quer ver um pulo? Diga: Nino, pular!",
@@ -297,6 +298,8 @@ public class FloatingNinoService extends Service {
 
     private void updateLayoutSafe() {
         if (view == null || wm == null) return;
+        if (lp.x == lastX && lp.y == lastY) return; // parado: não redesenha a janela (economiza bateria)
+        lastX = lp.x; lastY = lp.y;
         try { wm.updateViewLayout(view, lp); } catch (RuntimeException ignored) { }
     }
 

@@ -9,20 +9,7 @@ import { getNativeListening, setNativeListening } from "../utils/nativeListen";
 export function Splash({ onStart }: { onStart: () => void }) {
   return (
     <div className="splash">
-      <div className="splash-logo">
-        <span className="crown">♛</span>
-        <h1 className="pixel-title">
-          NINO<em>AI</em>
-        </h1>
-        <p>
-          Seu agente virtual.
-          <br />
-          Sempre com você.
-        </p>
-      </div>
-      <div className="splash-hero">
-        <Nino size={210} action="idle" expression="happy" />
-      </div>
+      <img className="splash-art" src="/nino-icon.webp" alt="Nino AI" width={600} height={600} decoding="async" />
       <button className="primary-btn" onClick={onStart}>
         Começar <IconChevron size={18} />
       </button>
