@@ -55,6 +55,13 @@ public class NinoOverlayPlugin extends Plugin {
     }
 
     @PluginMethod
+    public void isRunning(PluginCall call) {
+        JSObject r = new JSObject();
+        r.put("running", FloatingNinoService.running);
+        call.resolve(r);
+    }
+
+    @PluginMethod
     public void setSkin(PluginCall call) {
         FloatingNinoService.setSkin(call.getString("skin", "padrao"));
         call.resolve();

@@ -6,6 +6,7 @@ interface NinoOverlayPlugin {
   start(options?: { skin?: string }): Promise<void>;
   setSkin(options: { skin: string }): Promise<void>;
   stop(): Promise<void>;
+  isRunning(): Promise<{ running: boolean }>;
 }
 
 const NinoOverlay = registerPlugin<NinoOverlayPlugin>("NinoOverlay");
@@ -14,51 +15,66 @@ export const isNativeAndroid = () => Capacitor.getPlatform() === "android";
 
 let wantOn = false;
 let wantSkin = "padrao";
-let pending: ((ok: boolean) => void) | null = null;
+let waitTimer: number | null = null;
 
-/** Espera a pessoa voltar dos ajustes do Android e diz se a permissão foi liberada. */
-function waitBackFromSettings(): Promise<boolean> {
-  // Se já havia uma espera, encerra ela como "não liberou" para não travar.
-  pending?.(false);
-  return new Promise((resolve) => {
-    const done = (ok: boolean) => {
-      document.removeEventListener("visibilitychange", retry);
-      window.removeEventListener("focus", retry);
-      if (pending === done) pending = null;
-      resolve(ok);
-    };
-    pending = done;
-    const retry = async () => {
-      if (document.visibilityState !== "visible") return;
-      try {
-        const { granted } = await NinoOverlay.hasPermission();
-        if (granted && wantOn) await NinoOverlay.start({ skin: wantSkin });
-        done(granted && wantOn);
-      } catch {
-        done(false);
-      }
-    };
-    document.addEventListener("visibilitychange", retry);
-    window.addEventListener("focus", retry);
-  });
+/** O Nino está de fato sobre outros apps agora? (o serviço nativo é a fonte da verdade) */
+export async function getNativeOverlayRunning(): Promise<boolean> {
+  if (!isNativeAndroid()) return false;
+  try {
+    return (await NinoOverlay.isRunning()).running;
+  } catch {
+    return false;
+  }
 }
 
-/** Liga/desliga o Nino por cima de outros apps (só no APK). Devolve true se ele ficou ligado. */
+/**
+ * Depois que a pessoa libera "Sobrepor a outros apps" nos ajustes do Android, liga o Nino sozinho
+ * quando ela volta. Confere a permissão de tempos em tempos (até 3 min), sem depender de um único evento.
+ */
+function startWhenPermissionGranted() {
+  if (waitTimer !== null) return;
+  const startedAt = Date.now();
+  waitTimer = window.setInterval(async () => {
+    if (!wantOn || Date.now() - startedAt > 180000) {
+      stopWaiting();
+      return;
+    }
+    if (document.visibilityState !== "visible") return;
+    try {
+      const { granted } = await NinoOverlay.hasPermission();
+      if (granted) {
+        stopWaiting();
+        await NinoOverlay.start({ skin: wantSkin });
+      }
+    } catch {
+      /* tenta de novo no próximo ciclo */
+    }
+  }, 1000);
+}
+
+function stopWaiting() {
+  if (waitTimer !== null) {
+    window.clearInterval(waitTimer);
+    waitTimer = null;
+  }
+}
+
+/** Liga/desliga o Nino por cima de outros apps (só no APK Android). Devolve true se ele ficou ligado. */
 export async function setNativeOverlay(on: boolean, skin = "padrao"): Promise<boolean> {
   if (!isNativeAndroid()) return on;
   wantOn = on;
   wantSkin = skin;
   try {
     if (!on) {
-      pending?.(false);
+      stopWaiting();
       await NinoOverlay.stop();
       return false;
     }
     const { granted } = await NinoOverlay.hasPermission();
     if (!granted) {
-      const back = waitBackFromSettings();
+      startWhenPermissionGranted();
       await NinoOverlay.requestPermission();
-      return await back;
+      return false;
     }
     await NinoOverlay.start({ skin });
     return true;
@@ -70,6 +86,7 @@ export async function setNativeOverlay(on: boolean, skin = "padrao"): Promise<bo
 /** Troca a skin do Nino que já está sobre outros apps (sem precisar desligar e ligar). */
 export async function setNativeOverlaySkin(skin: string) {
   if (!isNativeAndroid()) return;
+  wantSkin = skin;
   try {
     await NinoOverlay.setSkin({ skin });
   } catch {

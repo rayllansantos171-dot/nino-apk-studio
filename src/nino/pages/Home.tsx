@@ -2,7 +2,7 @@ import React from "react";
 import Nino from "../components/Nino";
 import { IconChat, IconChevron, IconCube, IconMic, IconMove, IconRocket, IconSettings, IconShield } from "../components/Icons";
 import { useSettings } from "../utils/SettingsContext";
-import { isNativeAndroid, setNativeOverlay } from "../utils/nativeOverlay";
+import { getNativeOverlayRunning, isNativeAndroid, setNativeOverlay } from "../utils/nativeOverlay";
 import { getNativeListening, setNativeListening } from "../utils/nativeListen";
 
 /** Tela inicial de boas-vindas. */
@@ -53,13 +53,24 @@ export default function Home({
       void getNativeListening().then((running) => {
         update({ listening: running });
       });
+      // O botão "NA TELA" também segue o serviço de verdade (ele pode ter sido fechado pelo sistema).
+      void getNativeOverlayRunning().then((on) => {
+        update({ floating: on, onScreen: on });
+      });
     };
     sync();
+    const timers: number[] = [];
     const onVisible = () => {
-      if (document.visibilityState === "visible") sync();
+      if (document.visibilityState !== "visible") return;
+      // Ao voltar da tela de permissão, o Nino pode levar um instante para subir: confere algumas vezes.
+      sync();
+      [1200, 3000].forEach((ms) => timers.push(window.setTimeout(sync, ms)));
     };
     document.addEventListener("visibilitychange", onVisible);
-    return () => document.removeEventListener("visibilitychange", onVisible);
+    return () => {
+      document.removeEventListener("visibilitychange", onVisible);
+      timers.forEach((t) => window.clearTimeout(t));
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [native]);
 
@@ -108,7 +119,7 @@ export default function Home({
           aria-pressed={settings.onScreen}
           onClick={() => {
             const next = !settings.onScreen;
-            update({ floating: next, onScreen: next });
+            if (!native) update({ floating: next, onScreen: next });
             void (async () => {
               // Ao ativar o Nino na tela, ele já passa a ouvir "Nino + ordem" (pede o microfone se precisar).
               if (next && native && !settings.listening) {
@@ -116,8 +127,8 @@ export default function Home({
                 update({ listening: running });
               }
               const on = await setNativeOverlay(next, settings.skin);
-              // Se a permissão não foi liberada, o botão volta para "ATIVAR NA TELA" em vez de travar.
-              if (on !== next) update({ floating: on, onScreen: on });
+              // No Android só vale "ativo" quando o serviço realmente subiu (ou foi desligado).
+              if (native) update({ floating: next && on, onScreen: next && on });
             })();
           }}
         >

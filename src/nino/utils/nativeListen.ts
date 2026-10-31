@@ -59,15 +59,16 @@ export function onVoiceCommand(cb: (text: string) => void): () => void {
   };
 }
 
-/** Fala com a voz nativa do Android (o WebView quase nunca tem voz própria). false se não for o app.
- *  Corta a fala anterior antes, para as respostas não se sobreporem. */
-export function nativeSpeak(text: string): boolean {
+/** Fala com a voz nativa do Android. Devolve false se não for o app ou se a voz nativa falhar. */
+export async function nativeSpeak(text: string): Promise<boolean> {
   if (!native()) return false;
-  NinoListen.stopSpeaking()
-    .catch(() => {})
-    .then(() => NinoListen.speak({ text }))
-    .catch(() => {});
-  return true;
+  try {
+    await NinoListen.stopSpeaking().catch(() => {}); // corta a fala anterior para não se sobreporem
+    await NinoListen.speak({ text });
+    return true;
+  } catch {
+    return false; // APK antigo sem a função, ou sem motor de voz: o chamador tenta a voz do navegador
+  }
 }
 
 /** Para a voz nativa na hora. */

@@ -1,6 +1,8 @@
 import React, { useState } from "react";
 import ThemeSelector from "./ThemeSelector";
 import PermissionsList from "./Permissions";
+import { setNativeOverlay, setNativeOverlaySkin } from "../utils/nativeOverlay";
+import { setNativeListening } from "../utils/nativeListen";
 import {
   IconBell,
   IconBolt,
@@ -208,6 +210,9 @@ export function SettingsList() {
       <button
         className="outline-btn"
         onClick={() => {
+          void setNativeOverlay(false);
+          void setNativeListening(false);
+          void setNativeOverlaySkin("padrao");
           reset();
           show("Nino reiniciado!");
         }}

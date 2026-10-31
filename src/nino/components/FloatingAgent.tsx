@@ -5,6 +5,7 @@ import { SIZE_PX } from "../utils/settings";
 import { useSettings } from "../utils/SettingsContext";
 import { playByName } from "../utils/sound";
 import { askNino } from "@/lib/ai/nino.functions";
+import { withTimeout } from "../utils/withTimeout";
 import { respond } from "../utils/replies";
 import { speak } from "../utils/speak";
 import type { VoiceCommand } from "../utils/voiceCommands";
@@ -107,7 +108,7 @@ export default function FloatingAgent({ interactive = true }: { interactive?: bo
         finish(local);
         return;
       }
-      askNino({ data: { messages: [{ role: "user", content: text }] } })
+      withTimeout(askNino({ data: { messages: [{ role: "user", content: text }] } }), 25000)
         .then((r) => finish(r.ok ? r.text : local))
         .catch(() => finish(local));
     };

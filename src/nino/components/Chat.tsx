@@ -6,6 +6,7 @@ import { SCENE_LINES, respond, Weapon } from "../utils/replies";
 import { playBang, playHit, playPop, playSend, playThud, vibrate } from "../utils/sound";
 import { useSettings } from "../utils/SettingsContext";
 import { askNino } from "@/lib/ai/nino.functions";
+import { withTimeout } from "../utils/withTimeout";
 import { fileToDataUrl } from "../utils/image";
 import { speak } from "../utils/speak";
 
@@ -117,7 +118,7 @@ export default function Chat({
       window.setTimeout(() => deliver(offlineText, local.defend), local.defend ? 450 : 700);
       return;
     }
-    askNino({ data: { messages: history } })
+    withTimeout(askNino({ data: { messages: history } }), 25000)
       .then((r) => deliver(r.ok ? r.text : image ? r.error : local.text))
       .catch(() => deliver(image ? "Não consegui ver a foto agora. Tenta de novo! 📷" : local.text));
   };

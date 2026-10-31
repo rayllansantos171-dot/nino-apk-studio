@@ -34,7 +34,7 @@ public class ListeningService extends Service {
     private static final String ACTION_STOP = "app.lovable.ninoai.STOP_LISTENING";
     private static final String CH_LISTEN = "nino_listen";
     private static final String CH_HEARD = "nino_heard";
-    private static final Pattern WAKE = Pattern.compile("\\b(nino|ninho|ninu|nina|ninio|nineu|mino|lino|dino|ni no)\\b");
+    private static final Pattern WAKE = Pattern.compile("\\b(nino|ninho|ninu|ninio|nineu|ni no)\\b");
     private static final Pattern P_FLIP = Pattern.compile("\\b(cambalhota|salto mortal|mortal|pirueta|backflip|flip)\\b");
     private static final Pattern P_JUMP = Pattern.compile("\\b(pul[aeo]r?|pulando|pulinho|pulo|salta[r]?|salte)\\b");
     private static final Pattern P_SPIN = Pattern.compile("\\b(gir[ae]r?|rodopi[ae]r?|rod[ae]r?|roda)\\b");
@@ -315,7 +315,9 @@ public class ListeningService extends Service {
     /** Ordem simples para o Nino que está sobre outros apps (null se não for uma ordem). */
     static String overlayCommand(String command) {
         String n = Normalizer.normalize(command, Normalizer.Form.NFD).replaceAll("\\p{M}+", "")
-                .toLowerCase(Locale.ROOT).replaceAll("[^a-z0-9 ]+", " ");
+                .toLowerCase(Locale.ROOT).replaceAll("[^a-z0-9 ]+", " ").trim();
+        // Só frases curtas são ordens ("anda pra direita"); frases longas vão para a conversa com a IA.
+        if (n.split("\\s+").length > 5) return null;
         boolean right = P_RIGHT.matcher(n).find();
         boolean left = P_LEFT.matcher(n).find();
         if (right || left) {
@@ -376,7 +378,7 @@ public class ListeningService extends Service {
     /** Há alguma ordem que o app (não o Nino da tela) entende? Mantém em sincronia com voiceCommands.ts. */
     private static boolean appHasOrder(String text) {
         String n = Normalizer.normalize(text, Normalizer.Form.NFD).replaceAll("\\p{M}+", "").toLowerCase(Locale.ROOT);
-        return n.matches(".*\\b(senta[r]?|sente|dorm[ei]r?|durma|palmas|aplaud[ei]r?|forca|musculos?|reverencia|ri|rir|risada|chora[r]?|bravo|raiva|te amo|beijo|pensa[r]?).*");
+        return n.matches(".*\\b(senta[r]?|sente|dorm[ei]r?|durma|palmas|aplaud[ei]r?|forca|musculos?|reverencia|ri|rir|risada|chora[r]?|bravo|raiva|te amo|beijo|pensa[r]?)\\b.*");
     }
 
     /** Abre o app com a frase. Sem permissão de sobreposição, mostra uma notificação para tocar. */

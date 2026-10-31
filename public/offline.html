@@ -16,12 +16,12 @@ button{border:0;border-radius:20px;padding:0 16px;background:#7df9ff;color:#120d
 <div id="log"><div class="b n">Estou sem internet, mas continuo aqui! 💜 Fala comigo.</div></div>
 <form id="fm"><input id="i" placeholder="Digite..." autocomplete="off"><button>Enviar</button></form>
 <script>
-const R=[[/oi|ola|eai/,["Oi! 👋 Que bom te ver!","Olá! Tudo certo por aí?"]],
-[/criou|criador|papai|rayllan/,["Quem me criou foi o Rayllan Santos, meu papai! 💜 Ele é de Ubatuba, SP."]],
-[/piada/,["Por que o computador foi ao médico? Porque estava com vírus! 😂","O que o zero disse pro oito? Que cinto bonito! 😄"]],
-[/hora/,[()=>"Agora são "+new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})+" ⏰"]],
-[/triste|mal/,["Ei, vai ficar tudo bem. Tô aqui com você 💜"]],
-[/proposito|quem e voce/,["Sou o Nino, seu agente de IA! Quando a internet voltar, fico ainda mais esperto ⚡"]]];
+const R=[[/\b(oi|ola|eai)\b/,["Oi! 👋 Que bom te ver!","Olá! Tudo certo por aí?"]],
+[/\b(criou|criador|papai|rayllan)\b/,["Quem me criou foi o Rayllan Santos, meu papai! 💜 Ele é de Ubatuba, SP."]],
+[/\bpiada\b/,["Por que o computador foi ao médico? Porque estava com vírus! 😂","O que o zero disse pro oito? Que cinto bonito! 😄"]],
+[/\bhoras?\b/,[()=>"Agora são "+new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})+" ⏰"]],
+[/\b(triste|mal)\b/,["Ei, vai ficar tudo bem. Tô aqui com você 💜"]],
+[/\b(proposito|quem e voce)\b/,["Sou o Nino, seu agente de IA! Quando a internet voltar, fico ainda mais esperto ⚡"]]];
 const D=["Hmm, interessante! Me conta mais 🤔","Sem internet eu sei menos coisas, mas adoro conversar! 😊","Legal! E o que mais?"];
 const n=s=>s.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
 const pick=a=>{const x=a[Math.floor(Math.random()*a.length)];return typeof x=='function'?x():x};
@@ -30,4 +30,5 @@ fm.onsubmit=e=>{e.preventDefault();const t=i.value.trim();if(!t)return;add(t,'u'
 const r=R.find(([re])=>re.test(n(t)));setTimeout(()=>{add(pick(r?r[1]:D),'n');try{f.contentWindow.setState('wave')}catch(_){}
 setTimeout(()=>{try{f.contentWindow.setState('idle')}catch(_){}},1200)},600)};
 addEventListener('online',()=>location.href='https://nino-apk-studio.lovable.app');
+setInterval(()=>{if(navigator.onLine)fetch('https://nino-apk-studio.lovable.app',{mode:'no-cors'}).then(()=>location.href='https://nino-apk-studio.lovable.app').catch(()=>{})},8000);
 </script></body></html>

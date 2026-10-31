@@ -49,7 +49,9 @@ public class FloatingNinoService extends Service {
             "Que dia lindo! ☀️", "Tô de olho em tudo por aqui 👀", "Me chama de Nino que eu obedeço!",
             "Já tomou água hoje? 💧", "Me arrasta pra onde quiser!", "Quer ver um pulo? Diga: Nino, pular!",
             "Hmm... o que será que tem aí nesse app?", "Tô aqui se precisar! 💜", "Sabia que eu danço? Diga: Nino, dançar!"};
-    private int sizePx;
+    private int sizePx;      // largura da janela do Nino
+    private int heightPx;    // altura da janela do Nino
+    static volatile boolean running = false;
     private static volatile FloatingNinoService instance;
     private static volatile String skin = "padrao";
 
@@ -119,7 +121,7 @@ public class FloatingNinoService extends Service {
         int x = lp.x + sizePx / 2 - bw / 2;
         x = Math.max(4, Math.min(screenW() - bw - 4, x));
         int y = lp.y - bh - 2;
-        if (y < 0) y = lp.y + sizePx - 8;
+        if (y < 0) y = lp.y + heightPx - 8;
         blp.x = x; blp.y = y;
         try { wm.updateViewLayout(bubble, blp); } catch (RuntimeException ignored) { }
     }
@@ -147,7 +149,7 @@ public class FloatingNinoService extends Service {
         try { wm.addView(bubble, blp); } catch (RuntimeException e) { bubble = null; }
     }
 
-    private int floorY() { return screenH() - sizePx - 120; }
+    private int floorY() { return screenH() - heightPx - 120; }
 
     private void doCommand(String cmd, boolean talk) {
         if (view == null || dragging) return;
@@ -173,11 +175,23 @@ public class FloatingNinoService extends Service {
 
     @Override public IBinder onBind(Intent intent) { return null; }
 
+    /** Se o sistema matar o serviço, ele não volta sozinho (a pessoa liga de novo pelo botão). */
+    @Override
+    public int onStartCommand(Intent intent, int flags, int startId) {
+        return START_NOT_STICKY;
+    }
+
     @Override
     public void onCreate() {
         super.onCreate();
         instance = this;
-        startAsForeground();
+        try {
+            startAsForeground();
+        } catch (RuntimeException e) {
+            instance = null;
+            stopSelf();
+            return;
+        }
         // Sem permissão de sobreposição (por exemplo, revogada nos ajustes) o serviço encerra sem travar o app.
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && !Settings.canDrawOverlays(this)) {
             stopSelf();
@@ -189,7 +203,8 @@ public class FloatingNinoService extends Service {
         web.setBackgroundColor(Color.TRANSPARENT);
         web.getSettings().setJavaScriptEnabled(true);
         web.loadUrl("file:///android_asset/public/nino-overlay.html#" + skin);
-        sizePx = (int) (96 * getResources().getDisplayMetrics().density);
+        sizePx = (int) (110 * getResources().getDisplayMetrics().density);
+        heightPx = (int) (150 * getResources().getDisplayMetrics().density);
 
         int type = Build.VERSION.SDK_INT >= Build.VERSION_CODES.O
                 ? WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
@@ -199,7 +214,7 @@ public class FloatingNinoService extends Service {
                 type, WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE | WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
                 PixelFormat.TRANSLUCENT);
         lp.gravity = Gravity.TOP | Gravity.START;
-        lp.x = 40; lp.y = screenH() - sizePx - 200;
+        lp.x = 40; lp.y = screenH() - heightPx - 200;
 
         view.findViewById(R.id.nino_touch).setOnTouchListener(new View.OnTouchListener() {
             int sx, sy; float tx, ty; long t0;
@@ -213,7 +228,10 @@ public class FloatingNinoService extends Service {
                     case MotionEvent.ACTION_MOVE:
                         lp.x = sx + (int) (e.getRawX() - tx);
                         lp.y = sy + (int) (e.getRawY() - ty);
-                        wm.updateViewLayout(view, lp);
+                        updateLayoutSafe();
+                        return true;
+                    case MotionEvent.ACTION_CANCEL:
+                        dragging = false; vy = 0; setState("idle");
                         return true;
                     case MotionEvent.ACTION_UP:
                         dragging = false; vy = 0;
@@ -237,12 +255,18 @@ public class FloatingNinoService extends Service {
             stopSelf();
             return;
         }
+        running = true;
         buildBubble();
         h.post(tick);
     }
 
     private int screenW() { DisplayMetrics m = getResources().getDisplayMetrics(); return m.widthPixels; }
     private int screenH() { DisplayMetrics m = getResources().getDisplayMetrics(); return m.heightPixels; }
+
+    private void updateLayoutSafe() {
+        if (view == null || wm == null) return;
+        try { wm.updateViewLayout(view, lp); } catch (RuntimeException ignored) { }
+    }
 
     private void setState(String s) {
         state = s;
@@ -273,7 +297,7 @@ public class FloatingNinoService extends Service {
                         if (lp.x > screenW() - sizePx) { lp.x = screenW() - sizePx; dir = -1; setState("walk"); }
                     }
                 }
-                wm.updateViewLayout(view, lp);
+                updateLayoutSafe();
                 if (bubble != null && bubble.getVisibility() == View.VISIBLE) {
                     if (System.currentTimeMillis() > bubbleUntil) bubble.setVisibility(View.GONE);
                     else positionBubble();
@@ -312,6 +336,7 @@ public class FloatingNinoService extends Service {
 
     @Override
     public void onDestroy() {
+        running = false;
         if (instance == this) instance = null;
         h.removeCallbacks(tick);
         if (view != null && wm != null) {

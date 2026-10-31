@@ -12,6 +12,7 @@ import java.util.Locale;
 final class NinoVoice {
     private static TextToSpeech tts;
     private static boolean ready = false;
+    private static boolean warned = false;
     private static final List<String> pending = new ArrayList<>();
     private static volatile long busyUntil = 0;
 
@@ -28,36 +29,73 @@ final class NinoVoice {
         busyUntil = System.currentTimeMillis() + 800 + clean.length() * 75L;
         if (tts == null) {
             pending.add(clean);
-            tts = new TextToSpeech(ctx.getApplicationContext(), new TextToSpeech.OnInitListener() {
-                @Override public void onInit(int status) {
-                    synchronized (NinoVoice.class) {
-                        if (status != TextToSpeech.SUCCESS) { tts = null; pending.clear(); return; }
-                        int r = tts.setLanguage(new Locale("pt", "BR"));
-                        if (r == TextToSpeech.LANG_MISSING_DATA || r == TextToSpeech.LANG_NOT_SUPPORTED) {
-                            tts.setLanguage(Locale.getDefault());
-                        }
-                        tts.setSpeechRate(1.05f);
-                        tts.setOnUtteranceProgressListener(new UtteranceProgressListener() {
-                            @Override public void onStart(String id) { busyUntil = System.currentTimeMillis() + 60000; }
-                            @Override public void onDone(String id) { busyUntil = System.currentTimeMillis() + 700; }
-                            @Override public void onError(String id) { busyUntil = System.currentTimeMillis() + 300; }
-                        });
-                        ready = true;
-                        for (String t : pending) say(t);
-                        pending.clear();
-                    }
-                }
-            });
+            create(ctx.getApplicationContext());
         } else if (!ready) {
             pending.add(clean);
         } else {
-            say(clean);
+            say(ctx.getApplicationContext(), clean);
         }
     }
 
-    private static void say(String t) {
-        Bundle b = new Bundle();
-        tts.speak(t, TextToSpeech.QUEUE_FLUSH, b, "nino-" + System.nanoTime());
+    private static void create(final Context app) {
+        ready = false;
+        tts = new TextToSpeech(app, new TextToSpeech.OnInitListener() {
+            @Override public void onInit(int status) {
+                synchronized (NinoVoice.class) {
+                    if (status != TextToSpeech.SUCCESS) {
+                        failed(app);
+                        return;
+                    }
+                    int r = tts.setLanguage(new Locale("pt", "BR"));
+                    if (r == TextToSpeech.LANG_MISSING_DATA || r == TextToSpeech.LANG_NOT_SUPPORTED) {
+                        r = tts.setLanguage(new Locale("pt"));
+                    }
+                    if (r == TextToSpeech.LANG_MISSING_DATA || r == TextToSpeech.LANG_NOT_SUPPORTED) {
+                        // Sem voz em português: fala com a voz padrão do aparelho em vez de ficar mudo.
+                        tts.setLanguage(Locale.getDefault());
+                        warnOnce("Sem voz em português no aparelho. Instale em Configurações > Saída de texto para voz.");
+                    }
+                    tts.setSpeechRate(1.05f);
+                    tts.setOnUtteranceProgressListener(new UtteranceProgressListener() {
+                        @Override public void onStart(String id) { busyUntil = System.currentTimeMillis() + 60000; }
+                        @Override public void onDone(String id) { busyUntil = System.currentTimeMillis() + 700; }
+                        @Override public void onError(String id) { busyUntil = System.currentTimeMillis() + 300; }
+                    });
+                    ready = true;
+                    List<String> copy = new ArrayList<>(pending);
+                    pending.clear();
+                    for (String t : copy) say(app, t);
+                }
+            }
+        });
+    }
+
+    private static void failed(Context app) {
+        if (tts != null) { try { tts.shutdown(); } catch (RuntimeException ignored) { } }
+        tts = null;
+        ready = false;
+        pending.clear();
+        busyUntil = 0;
+        warnOnce("Não consigo falar: instale o “Google Text-to-Speech” (voz do Android).");
+    }
+
+    private static void warnOnce(String msg) {
+        if (warned) return;
+        warned = true;
+        FloatingNinoService.say(msg, false);
+    }
+
+    private static void say(Context app, String t) {
+        if (tts == null) return;
+        int res = tts.speak(t, TextToSpeech.QUEUE_ADD, new Bundle(), "nino-" + System.nanoTime());
+        if (res == TextToSpeech.ERROR) {
+            // O motor de voz morreu (por exemplo, o Google TTS foi atualizado): recria e tenta de novo.
+            try { tts.shutdown(); } catch (RuntimeException ignored) { }
+            tts = null;
+            ready = false;
+            pending.add(t);
+            create(app);
+        }
     }
 
     static synchronized void stop() {
